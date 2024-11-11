@@ -14,6 +14,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	getAllUsers = "getAllUsers"
+	getAllBooks = "getAllBooks"
+	userID      = "userID"
+	bookID      = "bookID"
+)
+
 type Handler struct {
 	service   service.IService
 	secretKey string
@@ -61,8 +68,8 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllUsers")
 	writeJSON(w, http.StatusOK, resp)
+	h.cache.Delete(getAllUsers)
 }
 
 func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +99,7 @@ func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	if data, ok := h.cache.Get("GetAllUsers"); ok {
+	if data, ok := h.cache.Get(getAllUsers); ok {
 		writeJSON(w, http.StatusOK, data)
 		return
 	}
@@ -103,12 +110,18 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Set("GetAllUsers", res, 10*time.Minute)
 	writeJSON(w, http.StatusOK, res)
+	h.cache.Set(getAllUsers, res, 30*time.Minute)
 }
 
 func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	id := getID(r)
+
+	if data, ok := h.cache.Get(userID + id); ok {
+		writeJSON(w, http.StatusOK, data)
+		return
+	}
+
 	res, err := h.service.GetUserById(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
@@ -116,6 +129,7 @@ func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, res)
+	h.cache.Set(userID+id, res, 30*time.Minute)
 }
 
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +150,8 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllUsers")
+	h.cache.Delete(getAllUsers)
+	h.cache.Delete(userID + id)
 }
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
@@ -147,11 +162,12 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllUsers")
+	h.cache.Delete(getAllUsers)
+	h.cache.Delete(userID + id)
 }
 
 func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
-	if data, ok := h.cache.Get("GetAllBooks"); ok {
+	if data, ok := h.cache.Get(getAllBooks); ok {
 		writeJSON(w, http.StatusOK, data)
 		return
 	}
@@ -162,12 +178,18 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Set("GetAllBooks", res, 10*time.Minute)
 	writeJSON(w, http.StatusOK, res)
+	h.cache.Set(getAllBooks, res, 30*time.Minute)
 }
 
 func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	id := getID(r)
+
+	if data, ok := h.cache.Get(bookID + id); ok {
+		writeJSON(w, http.StatusOK, data)
+		return
+	}
+
 	res, err := h.service.GetBookById(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
@@ -175,6 +197,7 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, res)
+	h.cache.Set(bookID+id, res, 30*time.Minute)
 }
 
 func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
@@ -187,8 +210,8 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllBooks")
 	writeJSON(w, http.StatusOK, res)
+	h.cache.Delete(getAllBooks)
 }
 
 func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +225,8 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllBooks")
+	h.cache.Delete(getAllBooks)
+	h.cache.Delete(bookID + id)
 }
 
 func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +237,8 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Delete("GetAllBooks")
+	h.cache.Delete(getAllBooks)
+	h.cache.Delete(bookID + id)
 }
 
 func getID(r *http.Request) string {
