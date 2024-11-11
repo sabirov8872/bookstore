@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 
-	"github.com/sabirov8872/bookstore/integral/types"
+	"github.com/sabirov8872/bookstore/internal/types"
 )
 
 type Repository struct {

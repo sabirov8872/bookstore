@@ -3,15 +3,15 @@ package app
 import (
 	"database/sql"
 	"fmt"
-	"github.com/sabirov8872/bookstore/integral/cache"
 	"log"
 
 	_ "github.com/lib/pq"
-	"github.com/sabirov8872/bookstore/integral/config"
-	"github.com/sabirov8872/bookstore/integral/handler"
-	"github.com/sabirov8872/bookstore/integral/repository"
-	"github.com/sabirov8872/bookstore/integral/routes"
-	"github.com/sabirov8872/bookstore/integral/service"
+	"github.com/sabirov8872/bookstore/internal/cache"
+	"github.com/sabirov8872/bookstore/internal/config"
+	"github.com/sabirov8872/bookstore/internal/handler"
+	"github.com/sabirov8872/bookstore/internal/repository"
+	"github.com/sabirov8872/bookstore/internal/routes"
+	"github.com/sabirov8872/bookstore/internal/service"
 )
 
 func Run() {

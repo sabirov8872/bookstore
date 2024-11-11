@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sabirov8872/bookstore/integral/cache"
-
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
-	"github.com/sabirov8872/bookstore/integral/service"
-	"github.com/sabirov8872/bookstore/integral/types"
+	"github.com/sabirov8872/bookstore/internal/cache"
+	"github.com/sabirov8872/bookstore/internal/service"
+	"github.com/sabirov8872/bookstore/internal/types"
 	"golang.org/x/crypto/bcrypt"
 )
 

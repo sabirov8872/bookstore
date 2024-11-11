@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/sabirov8872/bookstore/integral/repository"
-	"github.com/sabirov8872/bookstore/integral/types"
+	"github.com/sabirov8872/bookstore/internal/repository"
+	"github.com/sabirov8872/bookstore/internal/types"
 )
 
 type Service struct {

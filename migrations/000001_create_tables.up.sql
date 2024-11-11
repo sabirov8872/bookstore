@@ -9,7 +9,7 @@ create table if not exists users (
 
 create table if not exists books (
     id serial primary key,
-    bookname varchar,
-    genre varchar,
-    author varchar
+    bookname varchar not null,
+    genre varchar not null,
+    author varchar not null
 );
