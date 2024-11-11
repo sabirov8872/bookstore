@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -16,7 +17,7 @@ type Config struct {
 	DBSSLMode  string
 }
 
-func NewConfig() (*Config, error) {
+func GetConfig() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
