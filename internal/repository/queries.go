@@ -3,6 +3,7 @@ package repository
 import _ "embed"
 
 var (
+
 	//go:embed queries/get_user_by_username.sql
 	getUserByUsernameQuery string
 
@@ -35,4 +36,7 @@ var (
 
 	//go:embed queries/delete_book.sql
 	deleteBookQuery string
+
+	//go:embed queries/update_user_by_id.sql
+	updateUserByIdQuery string
 )

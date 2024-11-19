@@ -11,18 +11,19 @@ type Service struct {
 
 type IService interface {
 	CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error)
-	GetUserByUsername(username string) (*types.GetUserByUserDB, error)
+	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
 
 	GetAllUsers() (*types.ListUserResponse, error)
-	GetUserById(id string) (*types.User, error)
-	UpdateUser(id string, req types.UpdateUserRequest) error
-	DeleteUser(id string) error
+	GetUserById(id int) (*types.User, error)
+	UpdateUser(id int, req types.UpdateUserRequest) error
+	UpdateUserById(id int, userRole types.UpdateUserByIdRequest) error
+	DeleteUser(id int) error
 
 	GetAllBooks() (*types.ListBookResponse, error)
-	GetBookById(id string) (*types.Book, error)
+	GetBookById(id int) (*types.Book, error)
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
-	UpdateBook(id string, req types.UpdateBookRequest) error
-	DeleteBook(id string) error
+	UpdateBook(id int, req types.UpdateBookRequest) error
+	DeleteBook(id int) error
 }
 
 func NewService(repo repository.IRepository) *Service {
@@ -40,7 +41,7 @@ func (s *Service) CreateUser(req types.CreateUserRequest) (*types.CreateUserResp
 	}, nil
 }
 
-func (s *Service) GetUserByUsername(username string) (*types.GetUserByUserDB, error) {
+func (s *Service) GetUserByUsername(username string) (*types.GetUserByUsernameDB, error) {
 	return s.repo.GetUserByUsername(username)
 }
 
@@ -67,7 +68,7 @@ func (s *Service) GetAllUsers() (*types.ListUserResponse, error) {
 	}, nil
 }
 
-func (s *Service) GetUserById(id string) (*types.User, error) {
+func (s *Service) GetUserById(id int) (*types.User, error) {
 	res, err := s.repo.GetUserByID(id)
 	if err != nil {
 		return nil, err
@@ -83,11 +84,15 @@ func (s *Service) GetUserById(id string) (*types.User, error) {
 	}, nil
 }
 
-func (s *Service) UpdateUser(id string, req types.UpdateUserRequest) error {
+func (s *Service) UpdateUser(id int, req types.UpdateUserRequest) error {
 	return s.repo.UpdateUser(id, req)
 }
 
-func (s *Service) DeleteUser(id string) error {
+func (s *Service) UpdateUserById(id int, req types.UpdateUserByIdRequest) error {
+	return s.repo.UpdateUserById(id, req)
+}
+
+func (s *Service) DeleteUser(id int) error {
 	return s.repo.DeleteUser(id)
 }
 
@@ -112,7 +117,7 @@ func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
 	}, nil
 }
 
-func (s *Service) GetBookById(id string) (*types.Book, error) {
+func (s *Service) GetBookById(id int) (*types.Book, error) {
 	res, err := s.repo.GetBookByID(id)
 	if err != nil {
 		return nil, err
@@ -137,10 +142,10 @@ func (s *Service) CreateBook(req types.CreateBookRequest) (*types.CreateBookResp
 	}, nil
 }
 
-func (s *Service) UpdateBook(id string, req types.UpdateBookRequest) error {
+func (s *Service) UpdateBook(id int, req types.UpdateBookRequest) error {
 	return s.repo.UpdateBook(id, req)
 }
 
-func (s *Service) DeleteBook(id string) error {
+func (s *Service) DeleteBook(id int) error {
 	return s.repo.DeleteBook(id)
 }

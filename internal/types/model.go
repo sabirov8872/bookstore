@@ -1,7 +1,7 @@
 package types
 
 type User struct {
-	ID       int64  `json:"id"`
+	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
@@ -10,7 +10,7 @@ type User struct {
 }
 
 type GetUserByUserResponse struct {
-	UserID int64  `json:"userId"`
+	UserID int    `json:"userId"`
 	Token  string `json:"token"`
 }
 
@@ -31,6 +31,13 @@ type UpdateUserRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
+}
+
+type UpdateUserByIdRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
 	UserRole string `json:"userRole"`
 }
 
@@ -39,7 +46,7 @@ type ListUserResponse struct {
 }
 
 type CreateUserResponse struct {
-	ID int64 `json:"Id"`
+	ID int `json:"userId"`
 }
 
 type ErrorResponse struct {
@@ -47,7 +54,7 @@ type ErrorResponse struct {
 }
 
 type Book struct {
-	ID     int64  `json:"id"`
+	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	Genre  string `json:"genre"`
 	Author string `json:"author"`
@@ -70,5 +77,5 @@ type UpdateBookRequest struct {
 }
 
 type CreateBookResponse struct {
-	ID int64 `json:"bookId"`
+	ID int `json:"bookId"`
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/sabirov8872/bookstore/internal/cache"
 	"github.com/sabirov8872/bookstore/internal/config"
 	"github.com/sabirov8872/bookstore/internal/handler"
+	"github.com/sabirov8872/bookstore/internal/minio_client"
 	"github.com/sabirov8872/bookstore/internal/repository"
 	"github.com/sabirov8872/bookstore/internal/routes"
 	"github.com/sabirov8872/bookstore/internal/service"
@@ -35,10 +36,26 @@ func Run() {
 		log.Fatal("Error pinging database")
 	}
 
-	c := cache.New()
+	minioClient, err := minio_client.NewMinioClient(cfg.MinioEndpoint, cfg.MinioAccessKeyID, cfg.MinioSecretAccessKey, cfg.MinioBucketName, cfg.MinioLocation)
+	if err != nil {
+		log.Fatal("Error connecting to minio")
+	}
+
+	minioClient.CreateBucket()
+
+	//listObject, err := minioClient.ListObjectsInBucket(cfg.MinioBucketName)
+	//if err != nil {
+	//	log.Fatal("Error listing objects in bucket")
+	//}
+	//
+	//for _, object := range listObject {
+	//	fmt.Println(object)
+	//}
+
+	Cache := cache.New()
 
 	repo := repository.NewRepository(db)
 	serv := service.NewService(repo)
-	hand := handler.NewHandler(serv, cfg.SecretKey, c)
+	hand := handler.NewHandler(serv, cfg.SecretKey, Cache, minioClient)
 	routes.Run(hand, cfg.ServerPort, cfg.SecretKey)
 }

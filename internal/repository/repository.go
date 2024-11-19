@@ -11,19 +11,20 @@ type Repository struct {
 }
 
 type IRepository interface {
-	CreateUser(req types.CreateUserRequest) (int64, error)
-	GetUserByUsername(username string) (*types.GetUserByUserDB, error)
+	CreateUser(req types.CreateUserRequest) (int, error)
+	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
 
 	GetAllUsers() (resp []*types.UserDB, err error)
-	GetUserByID(id string) (*types.UserDB, error)
-	UpdateUser(id string, req types.UpdateUserRequest) error
-	DeleteUser(id string) error
+	GetUserByID(id int) (*types.UserDB, error)
+	UpdateUser(id int, req types.UpdateUserRequest) error
+	UpdateUserById(id int, req types.UpdateUserByIdRequest) error
+	DeleteUser(id int) error
 
 	GetAllBooks() ([]*types.BookDB, error)
-	GetBookByID(id string) (*types.BookDB, error)
-	CreateBook(req types.CreateBookRequest) (int64, error)
-	UpdateBook(id string, req types.UpdateBookRequest) error
-	DeleteBook(id string) error
+	GetBookByID(id int) (*types.BookDB, error)
+	CreateBook(req types.CreateBookRequest) (int, error)
+	UpdateBook(id int, req types.UpdateBookRequest) error
+	DeleteBook(id int) error
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -32,8 +33,8 @@ func NewRepository(db *sql.DB) *Repository {
 	}
 }
 
-func (repo *Repository) CreateUser(req types.CreateUserRequest) (int64, error) {
-	var id int64
+func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
+	var id int
 	err := repo.DB.QueryRow(createUserQuery, req.Username, req.Password, req.Email, req.Phone, "user").Scan(&id)
 	if err != nil {
 		return 0, err
@@ -42,8 +43,8 @@ func (repo *Repository) CreateUser(req types.CreateUserRequest) (int64, error) {
 	return id, nil
 }
 
-func (repo *Repository) GetUserByUsername(username string) (*types.GetUserByUserDB, error) {
-	var resp types.GetUserByUserDB
+func (repo *Repository) GetUserByUsername(username string) (*types.GetUserByUsernameDB, error) {
+	var resp types.GetUserByUsernameDB
 	err := repo.DB.QueryRow(getUserByUsernameQuery, username).Scan(&resp.ID, &resp.Password, &resp.UserRole)
 	if err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func (repo *Repository) GetAllUsers() (resp []*types.UserDB, err error) {
 	return resp, nil
 }
 
-func (repo *Repository) GetUserByID(id string) (*types.UserDB, error) {
+func (repo *Repository) GetUserByID(id int) (*types.UserDB, error) {
 	var resp types.UserDB
 	err := repo.DB.QueryRow(getUserByIdQuery, id).Scan(&resp.ID, &resp.Username, &resp.Password, &resp.Email, &resp.Phone, &resp.UserRole)
 	if err != nil {
@@ -82,12 +83,17 @@ func (repo *Repository) GetUserByID(id string) (*types.UserDB, error) {
 	return &resp, nil
 }
 
-func (repo *Repository) UpdateUser(id string, req types.UpdateUserRequest) error {
-	_, err := repo.DB.Query(updateUserQuery, req.Username, req.Password, req.Email, req.Phone, req.UserRole, id)
+func (repo *Repository) UpdateUser(id int, req types.UpdateUserRequest) error {
+	_, err := repo.DB.Query(updateUserQuery, req.Username, req.Password, req.Email, req.Phone, id)
 	return err
 }
 
-func (repo *Repository) DeleteUser(id string) error {
+func (repo *Repository) UpdateUserById(id int, req types.UpdateUserByIdRequest) error {
+	_, err := repo.DB.Query(updateUserByIdQuery, req.Username, req.Password, req.Email, req.Phone, req.UserRole, id)
+	return err
+}
+
+func (repo *Repository) DeleteUser(id int) error {
 	_, err := repo.DB.Query(deleteUserQuery, id)
 	return err
 }
@@ -113,7 +119,7 @@ func (repo *Repository) GetAllBooks() ([]*types.BookDB, error) {
 	return resp, nil
 }
 
-func (repo *Repository) GetBookByID(id string) (*types.BookDB, error) {
+func (repo *Repository) GetBookByID(id int) (*types.BookDB, error) {
 	var b types.BookDB
 	err := repo.DB.QueryRow(getBookByIdQuery, id).Scan(&b.ID, &b.Name, &b.Genre, &b.Author)
 	if err != nil {
@@ -123,8 +129,8 @@ func (repo *Repository) GetBookByID(id string) (*types.BookDB, error) {
 	return &b, nil
 }
 
-func (repo *Repository) CreateBook(req types.CreateBookRequest) (int64, error) {
-	var id int64
+func (repo *Repository) CreateBook(req types.CreateBookRequest) (int, error) {
+	var id int
 	err := repo.DB.QueryRow(createBookQuery, req.Name, req.Genre, req.Author).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -133,12 +139,12 @@ func (repo *Repository) CreateBook(req types.CreateBookRequest) (int64, error) {
 	return id, nil
 }
 
-func (repo *Repository) UpdateBook(id string, req types.UpdateBookRequest) error {
+func (repo *Repository) UpdateBook(id int, req types.UpdateBookRequest) error {
 	_, err := repo.DB.Query(updateBookQuery, req.Name, req.Genre, req.Author, id)
 	return err
 }
 
-func (repo *Repository) DeleteBook(id string) error {
+func (repo *Repository) DeleteBook(id int) error {
 	_, err := repo.DB.Query(deleteBookQuery, id)
 	return err
 }

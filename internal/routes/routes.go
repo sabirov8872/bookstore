@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,54 +12,40 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sabirov8872/bookstore/internal/handler"
 	"github.com/sabirov8872/bookstore/internal/types"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func Run(handler *handler.Handler, port, secretKey string) {
+func Run(hand handler.IHandler, port, secretKey string) {
 	router := mux.NewRouter()
-	router.HandleFunc("/signup", handler.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/login", handler.GetUserByUsername).Methods(http.MethodPost)
+	router.HandleFunc("/auth/sign-up", hand.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("/auth/sign-in", hand.GetUserByUsername).Methods(http.MethodPost)
 
-	router.HandleFunc("/user", AdminAuthMiddleware(secretKey, handler.GetAllUsers)).Methods(http.MethodGet)
-	router.HandleFunc("/user/{id}", AdminAuthMiddleware(secretKey, handler.GetUserById)).Methods(http.MethodGet)
-	router.HandleFunc("/user/{id}", AdminAuthMiddleware(secretKey, handler.UpdateUser)).Methods(http.MethodPut)
-	router.HandleFunc("/user/{id}", AdminAuthMiddleware(secretKey, handler.DeleteUser)).Methods(http.MethodDelete)
+	router.HandleFunc("/users", AdminAuthorization(secretKey, hand.GetAllUsers)).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.GetUserById)).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.UpdateUserById)).Methods(http.MethodPut)
+	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
+	router.HandleFunc("/users", UserAuthorization(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
 
-	router.HandleFunc("/book", UserAuthMiddleware(secretKey, handler.GetAllBooks)).Methods(http.MethodGet)
-	router.HandleFunc("/book/{id}", UserAuthMiddleware(secretKey, handler.GetBookById)).Methods(http.MethodGet)
+	router.HandleFunc("/books", UserAuthorization(secretKey, hand.GetAllBooks)).Methods(http.MethodGet)
+	router.HandleFunc("/books/{id}", UserAuthorization(secretKey, hand.GetBookById)).Methods(http.MethodGet)
+	router.HandleFunc("/books", AdminAuthorization(secretKey, hand.CreateBook)).Methods(http.MethodPost)
+	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
+	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
 
-	router.HandleFunc("/book", AdminAuthMiddleware(secretKey, handler.CreateBook)).Methods(http.MethodPost)
-	router.HandleFunc("/book/{id}", AdminAuthMiddleware(secretKey, handler.UpdateBook)).Methods(http.MethodPut)
-	router.HandleFunc("/book/{id}", AdminAuthMiddleware(secretKey, handler.DeleteBook)).Methods(http.MethodDelete)
+	router.HandleFunc("/files", hand.PutObject).Methods(http.MethodPost)
+	router.HandleFunc("/files/{objectName}", hand.GetObject).Methods(http.MethodGet)
+
+	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	log.Fatal(http.ListenAndServe("localhost:"+port, router))
 }
 
-func UserAuthMiddleware(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func UserAuthorization(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			writeJSON(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			authHeader = authHeader[len("Bearer "):]
-		}
-
-		token, err := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-
-			return []byte(secretKey), nil
-		})
+		_, err := validateToken(authHeader, secretKey)
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		if !token.Valid {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "invalid token"})
 			return
 		}
 
@@ -66,31 +53,12 @@ func UserAuthMiddleware(secretKey string, handler http.HandlerFunc) http.Handler
 	}
 }
 
-func AdminAuthMiddleware(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func AdminAuthorization(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			writeJSON(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			authHeader = authHeader[len("Bearer "):]
-		}
-
-		token, err := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(secretKey), nil
-		})
+		token, err := validateToken(authHeader, secretKey)
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		if !token.Valid {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "invalid token"})
 			return
 		}
 
@@ -113,6 +81,32 @@ func AdminAuthMiddleware(secretKey string, handler http.HandlerFunc) http.Handle
 
 		handler(w, r)
 	}
+}
+
+func validateToken(authHeader, secretKey string) (*jwt.Token, error) {
+	if authHeader == "" {
+		return nil, errors.New("empty authorization header")
+	}
+
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		authHeader = authHeader[len("Bearer "):]
+	}
+
+	token, err := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return token, nil
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, data any) {

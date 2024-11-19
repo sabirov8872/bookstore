@@ -3,6 +3,7 @@ version: '3.9'
 services:
   db:
     image: postgres:latest
+    container_name: db
     restart: always
     shm_size: 128mb
     ports:
@@ -13,16 +14,11 @@ services:
       POSTGRES_DB: postgres
 
   minio:
-    image: bitnami/minio:latest
+    image: minio/minio
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=rootuser
+      - MINIO_ROOT_PASSWORD=rootpassword
     ports:
       - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: user
-      MINIO_ROOT_PASSWORD: password
-      MINIO_DEFAULT_BUCKETS: bookstore
-
-  redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"
+    command: server /data
