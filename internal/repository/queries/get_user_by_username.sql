@@ -1,5 +1,5 @@
 SELECT id,
        password,
-       userrole
+       role
 FROM users
 WHERE username = $1

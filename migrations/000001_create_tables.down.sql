@@ -1,3 +1,8 @@
-drop table if exists users;
+DROP TABLE users;
 
-drop table if exists books;
+DROP TABLE books;
+
+DROP TABLE genres;
+
+DROP TABLE authors;
+

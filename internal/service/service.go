@@ -24,6 +24,9 @@ type IService interface {
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) error
+
+	GetFilename(id int) (string, error)
+	UpdateFilename(id int, filename string) error
 }
 
 func NewService(repo repository.IRepository) *Service {
@@ -105,10 +108,12 @@ func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
 	resp := make([]*types.Book, len(res))
 	for i, v := range res {
 		resp[i] = &types.Book{
-			ID:     v.ID,
-			Name:   v.Name,
-			Genre:  v.Genre,
-			Author: v.Author,
+			ID:       v.ID,
+			BookName: v.BookName,
+			Author:   v.Author,
+			Genre:    v.Genre,
+			ISBN:     v.ISBN,
+			Filename: v.Filename,
 		}
 	}
 
@@ -124,10 +129,12 @@ func (s *Service) GetBookById(id int) (*types.Book, error) {
 	}
 
 	return &types.Book{
-		ID:     res.ID,
-		Name:   res.Name,
-		Genre:  res.Genre,
-		Author: res.Author,
+		ID:       res.ID,
+		BookName: res.BookName,
+		Author:   res.Author,
+		Genre:    res.Genre,
+		ISBN:     res.ISBN,
+		Filename: res.Filename,
 	}, nil
 }
 
@@ -148,4 +155,12 @@ func (s *Service) UpdateBook(id int, req types.UpdateBookRequest) error {
 
 func (s *Service) DeleteBook(id int) error {
 	return s.repo.DeleteBook(id)
+}
+
+func (s *Service) GetFilename(id int) (string, error) {
+	return s.repo.GetFilename(id)
+}
+
+func (s *Service) UpdateFilename(id int, filename string) error {
+	return s.repo.UpdateFilename(id, filename)
 }

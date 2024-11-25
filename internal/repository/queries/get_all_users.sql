@@ -4,5 +4,5 @@ SELECT
     password,
     email,
     phone,
-    userrole
+    role
 FROM users

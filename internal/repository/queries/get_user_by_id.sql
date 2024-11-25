@@ -3,6 +3,6 @@ SELECT id,
        password,
        email,
        phone,
-       userrole
+       role
 FROM users
 WHERE id = $1

@@ -26,31 +26,27 @@ func Run() {
 
 	db, err := sql.Open("postgres", dbPath)
 	if err != nil {
-		log.Fatal("Error connecting to database")
+		log.Fatal(err)
 	}
-
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		log.Fatal("Error pinging database")
 	}
 
-	minioClient, err := minio_client.NewMinioClient(cfg.MinioEndpoint, cfg.MinioAccessKeyID, cfg.MinioSecretAccessKey, cfg.MinioBucketName, cfg.MinioLocation)
+	minioClient, err := minio_client.NewMinioClient(
+		cfg.MinioEndpoint,
+		cfg.MinioAccessKeyID,
+		cfg.MinioSecretAccessKey,
+		cfg.MinioBucketName)
 	if err != nil {
 		log.Fatal("Error connecting to minio")
 	}
 
-	minioClient.CreateBucket()
-
-	//listObject, err := minioClient.ListObjectsInBucket(cfg.MinioBucketName)
-	//if err != nil {
-	//	log.Fatal("Error listing objects in bucket")
-	//}
-	//
-	//for _, object := range listObject {
-	//	fmt.Println(object)
-	//}
+	if err = minioClient.CreateBucket(cfg.MinioLocation); err != nil {
+		log.Fatal("Error creating bucket")
+	}
+	fmt.Println("Connected to minio and created bucket")
 
 	Cache := cache.New()
 

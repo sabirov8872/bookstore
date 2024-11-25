@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/auth/sign-in": {
             "post": {
-                "description": "check username and password",
+                "description": "User username and password are checked",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Check user",
+                "summary": "User verification",
                 "parameters": [
                     {
                         "description": "User data",
@@ -63,7 +63,7 @@ const docTemplate = `{
         },
         "/auth/sign-up": {
             "post": {
-                "description": "Create a new user",
+                "description": "A new user will be created. Hashed before saving to database.",
                 "consumes": [
                     "application/json"
                 ],
@@ -73,7 +73,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Create user",
+                "summary": "Create a new user",
                 "parameters": [
                     {
                         "description": "User data",
@@ -103,12 +103,7 @@ const docTemplate = `{
         },
         "/books": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "get all books",
+                "description": "All book data is retrieved from the database.",
                 "consumes": [
                     "application/json"
                 ],
@@ -146,7 +141,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "create book",
+                "description": "A new book is created using the given information.",
                 "consumes": [
                     "application/json"
                 ],
@@ -156,7 +151,7 @@ const docTemplate = `{
                 "tags": [
                     "books"
                 ],
-                "summary": "Create book",
+                "summary": "Create a new book",
                 "parameters": [
                     {
                         "description": "Book data",
@@ -192,12 +187,7 @@ const docTemplate = `{
         },
         "/books/{id}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "get book by id",
+                "description": "User information is obtained by id and data.",
                 "consumes": [
                     "application/json"
                 ],
@@ -211,7 +201,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Book ID",
+                        "description": "Book id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -219,7 +209,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "The requested book data",
                         "schema": {
                             "$ref": "#/definitions/types.Book"
                         }
@@ -247,7 +237,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "update book by id",
+                "description": "The book will be updated using the given id and data.",
                 "consumes": [
                     "application/json"
                 ],
@@ -303,7 +293,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "delete book by id",
+                "description": "The book will be deleted using the given data.",
                 "consumes": [
                     "application/json"
                 ],
@@ -317,7 +307,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "User ID",
+                        "description": "Book id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -345,9 +335,51 @@ const docTemplate = `{
                 }
             }
         },
-        "/files": {
+        "/files/{id}": {
+            "get": {
+                "description": "This endpoint retrieves an object from the Minio bucket by its name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Get book file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Book id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Book file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
-                "description": "Loads a file using multipart/form-data and saves it to MinIO",
+                "description": "Upload a file for the specified book ID, replacing the existing file if any.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -357,11 +389,18 @@ const docTemplate = `{
                 "tags": [
                     "files"
                 ],
-                "summary": "File upload",
+                "summary": "Upload a new book file",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Book id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "type": "file",
-                        "description": "File (JPG, PNG, etc.)",
+                        "description": "Book file",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -377,46 +416,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/types.ErrorResponse"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/{objectName}": {
-            "get": {
-                "description": "This endpoint retrieves an object from the Minio bucket by its name.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Get an object from the Minio",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name of the object to retrieve",
-                        "name": "objectName",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "The requested object file",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/types.ErrorResponse"
                         }
@@ -437,7 +438,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "get all users",
+                "description": "All user data is retrieved from the database.",
                 "consumes": [
                     "application/json"
                 ],
@@ -475,7 +476,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "update user",
+                "description": "User information is updated using the provided information.",
                 "consumes": [
                     "application/json"
                 ],
@@ -526,7 +527,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "get user by id",
+                "description": "User information is obtained by id.",
                 "consumes": [
                     "application/json"
                 ],
@@ -579,7 +580,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "update user by id",
+                "description": "The user will be updated using the given data.",
                 "consumes": [
                     "application/json"
                 ],
@@ -635,7 +636,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "delete user by id",
+                "description": "User data will be deleted using the given information.",
                 "consumes": [
                     "application/json"
                 ],
@@ -685,13 +686,19 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
+                "bookName": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
                 "genre": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
+                "isbn": {
                     "type": "string"
                 }
             }
@@ -702,10 +709,13 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
+                "bookName": {
+                    "type": "string"
+                },
                 "genre": {
                     "type": "string"
                 },
-                "name": {
+                "isbn": {
                     "type": "string"
                 }
             }
@@ -801,10 +811,13 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
+                "bookName": {
+                    "type": "string"
+                },
                 "genre": {
                     "type": "string"
                 },
-                "name": {
+                "isbn": {
                     "type": "string"
                 }
             }

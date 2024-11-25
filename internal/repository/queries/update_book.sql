@@ -1,5 +1,6 @@
 update books
-set bookname = $1,
-    genre = $2,
-    author = $3
-where id = $4
+set author_id = $1,
+    genre_id = $2,
+    bookname = $3,
+    isbn = $4
+where id = $5

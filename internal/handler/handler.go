@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -49,11 +48,12 @@ type IHandler interface {
 	UpdateBook(w http.ResponseWriter, r *http.Request)
 	DeleteBook(w http.ResponseWriter, r *http.Request)
 
-	PutObject(w http.ResponseWriter, r *http.Request)
-	GetObject(w http.ResponseWriter, r *http.Request)
+	UploadBookFile(w http.ResponseWriter, r *http.Request)
+	GetBookFile(w http.ResponseWriter, r *http.Request)
 }
 
-func NewHandler(service service.IService, secretKey string, cache *cache.Cache, client *minio_client.MinioClient) *Handler {
+func NewHandler(service service.IService, secretKey string,
+	cache *cache.Cache, client *minio_client.MinioClient) *Handler {
 	return &Handler{
 		service:     service,
 		secretKey:   secretKey,
@@ -64,29 +64,36 @@ func NewHandler(service service.IService, secretKey string, cache *cache.Cache, 
 
 // CreateUser
 //
-// @Summary        Create user
-// @Description    Create a new user
+// @Summary        Create a new user
+// @Description    A new user will be created. Hashed before saving to database.
 // @Tags           auth
 // @Accept         json
 // @Produce        json
 // @Param          input body types.CreateUserRequest true "User data"
 // @Success        200 {object} types.CreateUserResponse
+// @Failure        400 {object} types.CreateUserResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /auth/sign-up [post]
 func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateUserRequest
-	json.NewDecoder(r.Body).Decode(&req)
-
-	hashedPassword, err := hashingPassword(req.Password)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
-	req.Password = hashedPassword
+
+	req.Password, err = hashingPassword(req.Password)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	resp, err := h.service.CreateUser(req)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "internal server error"})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -96,8 +103,8 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 // GetUserByUsername
 //
-// @Summary        Check user
-// @Description    check username and password
+// @Summary		   User verification
+// @Description    User username and password are checked
 // @Tags           auth
 // @Accept         json
 // @Produce        json
@@ -108,34 +115,46 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Router         /auth/sign-in [post]
 func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	var req types.GetUserByUserRequest
-	json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	resp, err := h.service.GetUserByUsername(req.Username)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, "invalid username")
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid username"})
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(resp.Password), []byte(req.Password))
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(resp.Password),
+		[]byte(req.Password))
+
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid password"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid password"})
 		return
 	}
 
-	var token string
-	token, err = createToken(resp.ID, resp.UserRole, h.secretKey)
+	token, err := createToken(resp.ID, resp.UserRole, h.secretKey)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, types.GetUserByUserResponse{UserID: resp.ID, Token: token})
+	writeJSON(w, http.StatusOK, types.GetUserByUserResponse{
+		UserID: resp.ID,
+		Token:  token})
 }
 
 // GetAllUsers
 //
 // @Summary        Get all users
-// @Description    get all users
+// @Description    All user data is retrieved from the database.
 // @Tags           users
 // @Accept         json
 // @Produce        json
@@ -152,7 +171,8 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.service.GetAllUsers()
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "internal server error"})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: "internal server error"})
 		return
 	}
 
@@ -163,21 +183,22 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 // GetUserById
 //
 // @Summary        Get user by id
-// @Description    get user by id
+// @Description    User information is obtained by id.
 // @Tags           users
 // @Accept         json
 // @Produce        json
 // @Security       ApiKeyAuth
 // @Param          id path int true "User id"
 // @Success        200 {object} types.User
+// @Success        204
 // @Failure        400 {object} types.ErrorResponse
 // @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
 // @Router         /users/{id} [get]
 func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
 		return
 	}
 
@@ -199,7 +220,7 @@ func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 // UpdateUser
 //
 // @Summary        Update user
-// @Description    update user
+// @Description    User information is updated using the provided information.
 // @Tags           users
 // @Accept         json
 // @Produce        json
@@ -207,24 +228,31 @@ func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 // @Param          input body types.UpdateUserRequest true "User data"
 // @Success        200
 // @Success        204
+// @Failure        400 {object} types.ErrorResponse
 // @Failure        401 {object} types.ErrorResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /users [put]
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateUserRequest
-	json.NewDecoder(r.Body).Decode(&req)
-
-	hashedPassword, err := hashingPassword(req.Password)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
-	req.Password = hashedPassword
+
+	req.Password, err = hashingPassword(req.Password)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	authHeader := r.Header.Get("Authorization")
 	id, err := getUserIdFromToken(authHeader, h.secretKey)
 	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -241,7 +269,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 // UpdateUserById
 //
 // @Summary        Update user by id
-// @Description    update user by id
+// @Description    The user will be updated using the given data.
 // @Tags           users
 // @Accept         json
 // @Produce        json
@@ -255,17 +283,31 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 // @Router         /users/{id} [put]
 func (h *Handler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateUserByIdRequest
-	json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
+		return
+	}
+
+	req.Password, err = hashingPassword(req.Password)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	err = h.service.UpdateUserById(id, req)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	h.cache.Delete(getAllUsers)
@@ -275,7 +317,7 @@ func (h *Handler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 // DeleteUser
 //
 // @Summary        Delete user by id
-// @Description    delete user by id
+// @Description    User data will be deleted using the given information.
 // @Tags           users
 // @Accept         json
 // @Produce        json
@@ -289,7 +331,8 @@ func (h *Handler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
 		return
 	}
 
@@ -306,13 +349,11 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // GetAllBooks
 //
 // @Summary        Get all books
-// @Description    get all books
+// @Description    All book data is retrieved from the database.
 // @Tags           books
 // @Accept         json
 // @Produce        json
-// @Security       ApiKeyAuth
 // @Success        200 {object} types.ListBookResponse
-// @Failure        401 {object} types.ErrorResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /books [get]
 func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
@@ -323,7 +364,8 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.service.GetAllBooks()
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "internal server error"})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -334,21 +376,21 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 // GetBookById
 //
 // @Summary        Get book by id
-// @Description    get book by id
+// @Description    User information is obtained by id and data.
 // @Tags           books
 // @Accept         json
 // @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Book ID"
-// @Success        200 {object} types.Book
+// @Param          id path int true "Book id"
+// @Success        200 {object} types.Book "The requested book data"
 // @Success        204
 // @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
+// @Failure        500 {object} types.ErrorResponse
 // @Router         /books/{id} [get]
 func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
 		return
 	}
 
@@ -359,7 +401,7 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.service.GetBookById(id)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -369,24 +411,31 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 
 // CreateBook
 //
-// @Summary        Create book
-// @Description    create book
+// @Summary        Create a new book
+// @Description    A new book is created using the given information.
 // @Tags           books
 // @Accept         json
 // @Produce        json
 // @Security       ApiKeyAuth
 // @Param          input body types.CreateBookRequest true "Book data"
 // @Success        200 {object} types.CreateBookResponse
+// @Failure        400 {object} types.ErrorResponse
 // @Failure        401 {object} types.ErrorResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /books [post]
 func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateBookRequest
-	json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	res, err := h.service.CreateBook(req)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "internal server error"})
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -397,7 +446,7 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 // UpdateBook
 //
 // @Summary        Update book by id
-// @Description    update book by id
+// @Description    The book will be updated using the given id and data.
 // @Tags           books
 // @Accept         json
 // @Produce        json
@@ -408,20 +457,28 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 // @Success        204
 // @Failure        400 {object} types.ErrorResponse
 // @Failure        401 {object} types.ErrorResponse
+// @Failure        500 {object} types.ErrorResponse
 // @Router         /books/{id} [put]
 func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateBookRequest
-	json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
 
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
 		return
 	}
 
 	err = h.service.UpdateBook(id, req)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -432,97 +489,150 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 // DeleteBook
 //
 // @Summary        Delete book by id
-// @Description    delete book by id
+// @Description    The book will be deleted using the given data.
 // @Tags           books
 // @Accept         json
 // @Produce        json
 // @Security       ApiKeyAuth
-// @Param          id path int true "User ID"
+// @Param          id path int true "Book id"
 // @Success        200
 // @Success        204
 // @Failure        400 {object} types.ErrorResponse
 // @Failure        401 {object} types.ErrorResponse
+// @Failure        500 {object} types.ErrorResponse
 // @Router         /books/{id} [delete]
 func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	filename, err := h.service.GetFilename(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	err = h.service.DeleteBook(id)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
+	}
+
+	if filename != "no file" {
+		err = h.minioClient.DeleteBookFile(r.Context(), filename)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	h.cache.Delete(getAllBooks)
 	h.cache.Delete(bookID + strconv.Itoa(id))
 }
 
-// PutObject
-// @Summary File upload
-// @Description Loads a file using multipart/form-data and saves it to MinIO
+// UploadBookFile
+//
+// @Summary Upload a new book file
+// @Description Upload a file for the specified book ID, replacing the existing file if any.
 // @Tags files
 // @Accept multipart/form-data
 // @Produce json
-// @Param file formData file true "File (JPG, PNG, etc.)"
+// @Param id path int true "Book id"
+// @Param file formData file true "Book file"
 // @Success 200
+// @Success 204
 // @Failure 400 {object} types.ErrorResponse
+// @Failure 401 {object} types.ErrorResponse
 // @Failure 500 {object} types.ErrorResponse
-// @Router /files [post]
-func (h *Handler) PutObject(w http.ResponseWriter, r *http.Request) {
-	file, fileHeader, err := r.FormFile("file")
-	fmt.Println(fileHeader.Filename)
-
+// @Router /files/{id} [post]
+func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
+	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 	defer file.Close()
 
-	err = h.minioClient.PutObjectToTheMinio(r.Context(), fileHeader.Filename, file)
+	filename, err := h.service.GetFilename(id)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if filename != "no file" {
+		err = h.minioClient.DeleteBookFile(r.Context(), filename)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError,
+				types.ErrorResponse{Message: err.Error()})
+			return
+		}
+	}
+
+	err = h.minioClient.PutBookFile(r.Context(), fileHeader.Filename, file)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	err = h.service.UpdateFilename(id, fileHeader.Filename)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
 		return
 	}
 }
 
-// GetObject
+// GetBookFile
 //
-// @Summary Get an object from the Minio
-// @Description This endpoint retrieves an object from the Minio bucket by its name.
-// @Tags files
-// @Accept  json
-// @Produce  octet-stream
-// @Param objectName path string true "Name of the object to retrieve"
-// @Success 200 {file} file "The requested object file"
-// @Failure 400 {object} types.ErrorResponse
-// @Failure 500 {object} types.ErrorResponse
-// @Router /files/{objectName} [get]
-func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
-	objectName := mux.Vars(r)["objectName"]
-
-	decodedFilename, err := url.PathUnescape(objectName)
+// @Summary           Get book file
+// @Description       This endpoint retrieves an object from the Minio bucket by its name.
+// @Tags              files
+// @Accept            json
+// @Produce           application/pdf
+// @Param id          path int true "Book id"
+// @Success           200 {file} file "Book file"
+// @Success           204
+// @Failure           400 {object} types.ErrorResponse
+// @Failure           401 {object} types.ErrorResponse
+// @Failure           500 {object} types.ErrorResponse
+// @Router            /files/{id} [get]
+func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
+	id, err := getID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid object name"})
+		writeJSON(w, http.StatusBadRequest,
+			types.ErrorResponse{Message: "invalid user id"})
 		return
 	}
 
-	object, err := h.minioClient.GetObjectFromMinio(r.Context(), decodedFilename)
+	filename, err := h.service.GetFilename(id)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	defer object.Close()
 
-	//w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename="+decodedFilename)
-	//if _, err = io.Copy(w, object); err != nil {
-	//	writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-	//}
+	file, err := h.minioClient.GetBookFile(r.Context(), filename)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
+	defer file.Close()
 
-	http.ServeContent(w, r, decodedFilename, time.Now(), object)
+	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	http.ServeContent(w, r, filename, time.Now(), file)
 }
 
 func getID(r *http.Request) (int, error) {
@@ -554,7 +664,9 @@ func createToken(id int, userRole, secretKey string) (string, error) {
 }
 
 func hashingPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.MinCost)
 	if err != nil {
 		return "", err
 	}
@@ -567,9 +679,11 @@ func getUserIdFromToken(authHeader, secretKey string) (int, error) {
 		authHeader = authHeader[len("Bearer "):]
 	}
 
-	token, _ := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
+	token, _ := jwt.Parse(
+		authHeader,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(secretKey), nil
+		})
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {

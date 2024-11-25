@@ -54,10 +54,12 @@ type ErrorResponse struct {
 }
 
 type Book struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Genre  string `json:"genre"`
-	Author string `json:"author"`
+	ID       int    `json:"id"`
+	BookName string `json:"bookName"`
+	Author   string `json:"author"`
+	Genre    string `json:"genre"`
+	ISBN     string `json:"isbn"`
+	Filename string `json:"filename"`
 }
 
 type ListBookResponse struct {
@@ -65,15 +67,17 @@ type ListBookResponse struct {
 }
 
 type CreateBookRequest struct {
-	Name   string `json:"name"`
-	Genre  string `json:"genre"`
-	Author string `json:"author"`
+	BookName string `json:"bookName"`
+	Genre    string `json:"genre"`
+	Author   string `json:"author"`
+	ISBN     string `json:"isbn"`
 }
 
 type UpdateBookRequest struct {
-	Name   string `json:"name"`
-	Genre  string `json:"genre"`
-	Author string `json:"author"`
+	BookName string `json:"bookName"`
+	Genre    string `json:"genre"`
+	Author   string `json:"author"`
+	ISBN     string `json:"isbn"`
 }
 
 type CreateBookResponse struct {

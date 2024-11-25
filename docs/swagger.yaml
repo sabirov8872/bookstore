@@ -4,20 +4,26 @@ definitions:
     properties:
       author:
         type: string
+      bookName:
+        type: string
+      filename:
+        type: string
       genre:
         type: string
       id:
         type: integer
-      name:
+      isbn:
         type: string
     type: object
   types.CreateBookRequest:
     properties:
       author:
         type: string
+      bookName:
+        type: string
       genre:
         type: string
-      name:
+      isbn:
         type: string
     type: object
   types.CreateBookResponse:
@@ -78,9 +84,11 @@ definitions:
     properties:
       author:
         type: string
+      bookName:
+        type: string
       genre:
         type: string
-      name:
+      isbn:
         type: string
     type: object
   types.UpdateUserByIdRequest:
@@ -132,7 +140,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: check username and password
+      description: User username and password are checked
       parameters:
       - description: User data
         in: body
@@ -155,14 +163,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      summary: Check user
+      summary: User verification
       tags:
       - auth
   /auth/sign-up:
     post:
       consumes:
       - application/json
-      description: Create a new user
+      description: A new user will be created. Hashed before saving to database.
       parameters:
       - description: User data
         in: body
@@ -181,14 +189,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      summary: Create user
+      summary: Create a new user
       tags:
       - auth
   /books:
     get:
       consumes:
       - application/json
-      description: get all books
+      description: All book data is retrieved from the database.
       produces:
       - application/json
       responses:
@@ -204,15 +212,13 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
       summary: Get all books
       tags:
       - books
     post:
       consumes:
       - application/json
-      description: create book
+      description: A new book is created using the given information.
       parameters:
       - description: Book data
         in: body
@@ -237,16 +243,16 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Create book
+      summary: Create a new book
       tags:
       - books
   /books/{id}:
     delete:
       consumes:
       - application/json
-      description: delete book by id
+      description: The book will be deleted using the given data.
       parameters:
-      - description: User ID
+      - description: Book id
         in: path
         name: id
         required: true
@@ -274,9 +280,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: get book by id
+      description: User information is obtained by id and data.
       parameters:
-      - description: Book ID
+      - description: Book id
         in: path
         name: id
         required: true
@@ -285,7 +291,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: The requested book data
           schema:
             $ref: '#/definitions/types.Book'
         "204":
@@ -298,15 +304,13 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
       summary: Get book by id
       tags:
       - books
     put:
       consumes:
       - application/json
-      description: update book by id
+      description: The book will be updated using the given id and data.
       parameters:
       - description: Book ID
         in: path
@@ -339,13 +343,48 @@ paths:
       summary: Update book by id
       tags:
       - books
-  /files:
+  /files/{id}:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint retrieves an object from the Minio bucket by its
+        name.
+      parameters:
+      - description: Book id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: Book file
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get book file
+      tags:
+      - files
     post:
       consumes:
       - multipart/form-data
-      description: Loads a file using multipart/form-data and saves it to MinIO
+      description: Upload a file for the specified book ID, replacing the existing
+        file if any.
       parameters:
-      - description: File (JPG, PNG, etc.)
+      - description: Book id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Book file
         in: formData
         name: file
         required: true
@@ -359,48 +398,22 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: File upload
-      tags:
-      - files
-  /files/{objectName}:
-    get:
-      consumes:
-      - application/json
-      description: This endpoint retrieves an object from the Minio bucket by its
-        name.
-      parameters:
-      - description: Name of the object to retrieve
-        in: path
-        name: objectName
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
-      responses:
-        "200":
-          description: The requested object file
-          schema:
-            type: file
-        "400":
-          description: Bad Request
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/types.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      summary: Get an object from the Minio
+      summary: Upload a new book file
       tags:
       - files
   /users:
     get:
       consumes:
       - application/json
-      description: get all users
+      description: All user data is retrieved from the database.
       produces:
       - application/json
       responses:
@@ -424,7 +437,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: update user
+      description: User information is updated using the provided information.
       parameters:
       - description: User data
         in: body
@@ -456,7 +469,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: delete user by id
+      description: User data will be deleted using the given information.
       parameters:
       - description: User ID
         in: path
@@ -486,7 +499,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: get user by id
+      description: User information is obtained by id.
       parameters:
       - description: User id
         in: path
@@ -520,7 +533,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: update user by id
+      description: The user will be updated using the given data.
       parameters:
       - description: User ID
         in: path

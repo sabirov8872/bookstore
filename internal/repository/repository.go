@@ -25,6 +25,9 @@ type IRepository interface {
 	CreateBook(req types.CreateBookRequest) (int, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) error
+
+	GetFilename(id int) (string, error)
+	UpdateFilename(id int, filename string) error
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -35,7 +38,13 @@ func NewRepository(db *sql.DB) *Repository {
 
 func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
 	var id int
-	err := repo.DB.QueryRow(createUserQuery, req.Username, req.Password, req.Email, req.Phone, "user").Scan(&id)
+	err := repo.DB.QueryRow(createUserQuery,
+		req.Username,
+		req.Password,
+		req.Email,
+		req.Phone,
+		"user").
+		Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -45,7 +54,10 @@ func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
 
 func (repo *Repository) GetUserByUsername(username string) (*types.GetUserByUsernameDB, error) {
 	var resp types.GetUserByUsernameDB
-	err := repo.DB.QueryRow(getUserByUsernameQuery, username).Scan(&resp.ID, &resp.Password, &resp.UserRole)
+	err := repo.DB.QueryRow(getUserByUsernameQuery, username).Scan(
+		&resp.ID,
+		&resp.Password,
+		&resp.UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +74,13 @@ func (repo *Repository) GetAllUsers() (resp []*types.UserDB, err error) {
 
 	for rows.Next() {
 		var u types.UserDB
-		err = rows.Scan(&u.ID, &u.Username, &u.Password, &u.Email, &u.Phone, &u.UserRole)
+		err = rows.Scan(
+			&u.ID,
+			&u.Username,
+			&u.Password,
+			&u.Email,
+			&u.Phone,
+			&u.UserRole)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +93,13 @@ func (repo *Repository) GetAllUsers() (resp []*types.UserDB, err error) {
 
 func (repo *Repository) GetUserByID(id int) (*types.UserDB, error) {
 	var resp types.UserDB
-	err := repo.DB.QueryRow(getUserByIdQuery, id).Scan(&resp.ID, &resp.Username, &resp.Password, &resp.Email, &resp.Phone, &resp.UserRole)
+	err := repo.DB.QueryRow(getUserByIdQuery, id).Scan(
+		&resp.ID,
+		&resp.Username,
+		&resp.Password,
+		&resp.Email,
+		&resp.Phone,
+		&resp.UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +108,23 @@ func (repo *Repository) GetUserByID(id int) (*types.UserDB, error) {
 }
 
 func (repo *Repository) UpdateUser(id int, req types.UpdateUserRequest) error {
-	_, err := repo.DB.Query(updateUserQuery, req.Username, req.Password, req.Email, req.Phone, id)
+	_, err := repo.DB.Query(updateUserQuery,
+		req.Username,
+		req.Password,
+		req.Email,
+		req.Phone,
+		id)
 	return err
 }
 
 func (repo *Repository) UpdateUserById(id int, req types.UpdateUserByIdRequest) error {
-	_, err := repo.DB.Query(updateUserByIdQuery, req.Username, req.Password, req.Email, req.Phone, req.UserRole, id)
+	_, err := repo.DB.Query(updateUserByIdQuery,
+		req.Username,
+		req.Password,
+		req.Email,
+		req.Phone,
+		req.UserRole,
+		id)
 	return err
 }
 
@@ -108,7 +143,13 @@ func (repo *Repository) GetAllBooks() ([]*types.BookDB, error) {
 	var resp []*types.BookDB
 	for rows.Next() {
 		var b types.BookDB
-		err = rows.Scan(&b.ID, &b.Name, &b.Genre, &b.Author)
+		err = rows.Scan(
+			&b.ID,
+			&b.BookName,
+			&b.Author,
+			&b.Genre,
+			&b.ISBN,
+			&b.Filename)
 		if err != nil {
 			return nil, err
 		}
@@ -120,31 +161,244 @@ func (repo *Repository) GetAllBooks() ([]*types.BookDB, error) {
 }
 
 func (repo *Repository) GetBookByID(id int) (*types.BookDB, error) {
-	var b types.BookDB
-	err := repo.DB.QueryRow(getBookByIdQuery, id).Scan(&b.ID, &b.Name, &b.Genre, &b.Author)
+	var res types.BookDB
+	err := repo.DB.QueryRow(getBookByIdQuery, id).Scan(
+		&res.ID,
+		&res.BookName,
+		&res.Author,
+		&res.Genre,
+		&res.ISBN,
+		&res.Filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return &b, nil
+	return &res, nil
 }
 
 func (repo *Repository) CreateBook(req types.CreateBookRequest) (int, error) {
-	var id int
-	err := repo.DB.QueryRow(createBookQuery, req.Name, req.Genre, req.Author).Scan(&id)
+	var authorId int
+	err := repo.DB.QueryRow(
+		"select id from authors where author = $1", req.Author).Scan(&authorId)
+	if err != nil {
+		err = repo.DB.QueryRow(
+			"INSERT INTO authors (author) VALUES ($1) RETURNING id",
+			req.Author).Scan(&authorId)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	var genreId int
+	err = repo.DB.QueryRow(
+		"select id from genres where genre = $1", req.Genre).Scan(&genreId)
+	if err != nil {
+		err = repo.DB.QueryRow(
+			"insert into genres (genre) values ($1) RETURNING id",
+			req.Genre).Scan(&genreId)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	var bookId int
+	err = repo.DB.QueryRow(createBookQuery,
+		authorId,
+		genreId,
+		req.BookName,
+		req.ISBN,
+		"no file").
+		Scan(&bookId)
 	if err != nil {
 		return 0, err
 	}
 
-	return id, nil
+	return bookId, nil
 }
 
 func (repo *Repository) UpdateBook(id int, req types.UpdateBookRequest) error {
-	_, err := repo.DB.Query(updateBookQuery, req.Name, req.Genre, req.Author, id)
+	var authorId, genreId int
+	err := repo.DB.QueryRow(
+		"select author_id, genre_id from books where id = $1",
+		id).Scan(&authorId, &genreId)
+	if err != nil {
+		return err
+	}
+
+	rowsByAuthorId, err := repo.DB.Query(
+		"select id from books where author_id = $1", authorId)
+	if err != nil {
+		return err
+	}
+	defer rowsByAuthorId.Close()
+
+	var bookIdsByAuthorId []int
+	for rowsByAuthorId.Next() {
+		var i int
+		err = rowsByAuthorId.Scan(&i)
+		if err != nil {
+			return err
+		}
+
+		bookIdsByAuthorId = append(bookIdsByAuthorId, i)
+
+		if len(bookIdsByAuthorId) == 2 {
+			break
+		}
+	}
+
+	if len(bookIdsByAuthorId) < 2 {
+		_, err = repo.DB.Query(
+			"UPDATE authors SET author = $1 WHERE id = $2",
+			req.Author, authorId)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = repo.DB.QueryRow(
+			"insert into authors (author) values ($1) RETURNING id",
+			req.Author).Scan(&authorId)
+		if err != nil {
+			return err
+		}
+	}
+
+	rowsByGenreId, err := repo.DB.Query(
+		"select id from books where genre_id = $1", genreId)
+	if err != nil {
+		return err
+	}
+	defer rowsByGenreId.Close()
+
+	var bookIdsByGenreId []int
+	for rowsByGenreId.Next() {
+		var i int
+		err = rowsByGenreId.Scan(&i)
+		if err != nil {
+			return err
+		}
+
+		bookIdsByGenreId = append(bookIdsByGenreId, i)
+
+		if len(bookIdsByGenreId) == 2 {
+			break
+		}
+	}
+
+	if len(bookIdsByGenreId) < 2 {
+		_, err = repo.DB.Query(
+			"UPDATE genres SET genre = $1 WHERE id = $2",
+			req.Genre, genreId)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = repo.DB.QueryRow(
+			"insert into genres (genre) values ($1) RETURNING id",
+			req.Genre).Scan(&genreId)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = repo.DB.Query(updateBookQuery,
+		authorId,
+		genreId,
+		req.BookName,
+		req.ISBN,
+		id)
+
 	return err
 }
 
 func (repo *Repository) DeleteBook(id int) error {
-	_, err := repo.DB.Query(deleteBookQuery, id)
+	var authorId, genreId int
+	err := repo.DB.QueryRow(
+		"select author_id, genre_id from books where id = $1",
+		id).Scan(&authorId, &genreId)
+	if err != nil {
+		return err
+	}
+
+	rowsByAuthorId, err := repo.DB.Query(
+		"select id from books where author_id = $1", authorId)
+	if err != nil {
+		return err
+	}
+	defer rowsByAuthorId.Close()
+
+	var bookIdsByAuthorId []int
+	for rowsByAuthorId.Next() {
+		var i int
+		err = rowsByAuthorId.Scan(&i)
+		if err != nil {
+			return err
+		}
+
+		bookIdsByAuthorId = append(bookIdsByAuthorId, i)
+
+		if len(bookIdsByAuthorId) == 2 {
+			break
+		}
+	}
+
+	rowsByGenreId, err := repo.DB.Query(
+		"select id from books where genre_id = $1", genreId)
+	if err != nil {
+		return err
+	}
+	defer rowsByGenreId.Close()
+
+	var bookIdsByGenreId []int
+	for rowsByGenreId.Next() {
+		var i int
+		err = rowsByGenreId.Scan(&i)
+		if err != nil {
+			return err
+		}
+
+		bookIdsByGenreId = append(bookIdsByGenreId, i)
+
+		if len(bookIdsByGenreId) == 2 {
+			break
+		}
+	}
+
+	_, err = repo.DB.Query(deleteBookQuery, id)
+	if err != nil {
+		return err
+	}
+
+	if len(bookIdsByAuthorId) < 2 {
+		_, err = repo.DB.Query(
+			"delete from authors where id = $1", authorId)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(bookIdsByGenreId) < 2 {
+		_, err = repo.DB.Query(
+			"delete from genres where id = $1", genreId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *Repository) GetFilename(id int) (string, error) {
+	var filename string
+	err := repo.DB.QueryRow(getFilenameQuery, id).Scan(&filename)
+	if err != nil {
+		return "", err
+	}
+
+	return filename, nil
+}
+
+func (repo *Repository) UpdateFilename(id int, filename string) error {
+	_, err := repo.DB.Query(updateFilenameQuery, filename, id)
 	return err
 }

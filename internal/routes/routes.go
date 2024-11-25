@@ -26,14 +26,14 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
 	router.HandleFunc("/users", UserAuthorization(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
 
-	router.HandleFunc("/books", UserAuthorization(secretKey, hand.GetAllBooks)).Methods(http.MethodGet)
-	router.HandleFunc("/books/{id}", UserAuthorization(secretKey, hand.GetBookById)).Methods(http.MethodGet)
+	router.HandleFunc("/books", hand.GetAllBooks).Methods(http.MethodGet)
+	router.HandleFunc("/books/{id}", hand.GetBookById).Methods(http.MethodGet)
 	router.HandleFunc("/books", AdminAuthorization(secretKey, hand.CreateBook)).Methods(http.MethodPost)
 	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
 	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
 
-	router.HandleFunc("/files", hand.PutObject).Methods(http.MethodPost)
-	router.HandleFunc("/files/{objectName}", hand.GetObject).Methods(http.MethodGet)
+	router.HandleFunc("/files/{id}", UserAuthorization(secretKey, hand.GetBookFile)).Methods(http.MethodGet)
+	router.HandleFunc("/files/{id}", AdminAuthorization(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 

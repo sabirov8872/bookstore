@@ -6,18 +6,20 @@ type UserDB struct {
 	Password string `db:"password"`
 	Email    string `db:"email"`
 	Phone    string `db:"phone"`
-	UserRole string `db:"userRole"`
+	UserRole string `db:"userrole"`
 }
 
 type GetUserByUsernameDB struct {
 	ID       int    `db:"id"`
 	Password string `db:"password"`
-	UserRole string `db:"userRole"`
+	UserRole string `db:"userrole"`
 }
 
 type BookDB struct {
-	ID     int    `db:"id"`
-	Name   string `db:"name"`
-	Genre  string `db:"genre"`
-	Author string `db:"author"`
+	ID       int    `db:"id"`
+	BookName string `db:"bookname"`
+	Author   string `db:"author"`
+	Genre    string `db:"genre"`
+	ISBN     string `db:"isbn"`
+	Filename string `db:"filename"`
 }
