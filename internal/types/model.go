@@ -83,3 +83,13 @@ type UpdateBookRequest struct {
 type CreateBookResponse struct {
 	ID int `json:"bookId"`
 }
+
+type Author struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type ListAuthors struct {
+	TotalAuthors int       `json:"totalAuthors"`
+	Authors      []*Author `json:"authors"`
+}

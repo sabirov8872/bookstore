@@ -31,8 +31,9 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	router.HandleFunc("/books", AdminAuthorization(secretKey, hand.CreateBook)).Methods(http.MethodPost)
 	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
 	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
+	router.HandleFunc("/books/authors", hand.GetAuthors).Methods(http.MethodGet)
 
-	router.HandleFunc("/files/{id}", UserAuthorization(secretKey, hand.GetBookFile)).Methods(http.MethodGet)
+	router.HandleFunc("/files/{id}", hand.GetBookFile).Methods(http.MethodGet)
 	router.HandleFunc("/files/{id}", AdminAuthorization(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)

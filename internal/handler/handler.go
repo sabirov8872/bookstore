@@ -47,6 +47,7 @@ type IHandler interface {
 	CreateBook(w http.ResponseWriter, r *http.Request)
 	UpdateBook(w http.ResponseWriter, r *http.Request)
 	DeleteBook(w http.ResponseWriter, r *http.Request)
+	GetAuthors(w http.ResponseWriter, r *http.Request)
 
 	UploadBookFile(w http.ResponseWriter, r *http.Request)
 	GetBookFile(w http.ResponseWriter, r *http.Request)
@@ -536,19 +537,20 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 
 // UploadBookFile
 //
-// @Summary Upload a new book file
-// @Description Upload a file for the specified book ID, replacing the existing file if any.
-// @Tags files
-// @Accept multipart/form-data
-// @Produce json
-// @Param id path int true "Book id"
-// @Param file formData file true "Book file"
-// @Success 200
-// @Success 204
-// @Failure 400 {object} types.ErrorResponse
-// @Failure 401 {object} types.ErrorResponse
-// @Failure 500 {object} types.ErrorResponse
-// @Router /files/{id} [post]
+// @Summary       Upload book file
+// @Description   Upload a file for the specified book ID, replacing the existing file if any.
+// @Tags          files
+// @Accept        multipart/form-data
+// @Produce       json
+// @Security      ApiKeyAuth
+// @Param         id path int true "Book id"
+// @Param         file formData file true "Book file"
+// @Success       200
+// @Success       204
+// @Failure       400 {object} types.ErrorResponse
+// @Failure       401 {object} types.ErrorResponse
+// @Failure       500 {object} types.ErrorResponse
+// @Router        /files/{id} [post]
 func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -606,7 +608,6 @@ func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 // @Success           200 {file} file "Book file"
 // @Success           204
 // @Failure           400 {object} types.ErrorResponse
-// @Failure           401 {object} types.ErrorResponse
 // @Failure           500 {object} types.ErrorResponse
 // @Router            /files/{id} [get]
 func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
@@ -633,6 +634,17 @@ func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	http.ServeContent(w, r, filename, time.Now(), file)
+}
+
+func (h *Handler) GetAuthors(w http.ResponseWriter, r *http.Request) {
+	listAuthors, err := h.service.GetAuthors()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, listAuthors)
 }
 
 func getID(r *http.Request) (int, error) {

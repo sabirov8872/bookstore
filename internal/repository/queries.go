@@ -46,4 +46,7 @@ var (
 
 	//go:embed queries/update_filename.sql
 	updateFilenameQuery string
+
+	//go:embed queries/get_authors.sql
+	getAuthorsQuery string
 )

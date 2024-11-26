@@ -28,6 +28,8 @@ type IRepository interface {
 
 	GetFilename(id int) (string, error)
 	UpdateFilename(id int, filename string) error
+
+	GetAuthors() ([]*types.AuthorDB, int, error)
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -386,6 +388,29 @@ func (repo *Repository) DeleteBook(id int) error {
 	}
 
 	return nil
+}
+
+func (repo *Repository) GetAuthors() ([]*types.AuthorDB, int, error) {
+	rows, err := repo.DB.Query(getAuthorsQuery)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var authors []*types.AuthorDB
+	var totalAuthors int
+	for rows.Next() {
+		var author types.AuthorDB
+		err = rows.Scan(&author.ID, &author.Name)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		authors = append(authors, &author)
+		totalAuthors += 1
+	}
+
+	return authors, totalAuthors, nil
 }
 
 func (repo *Repository) GetFilename(id int) (string, error) {

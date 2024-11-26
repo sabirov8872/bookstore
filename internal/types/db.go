@@ -23,3 +23,8 @@ type BookDB struct {
 	ISBN     string `db:"isbn"`
 	Filename string `db:"filename"`
 }
+
+type AuthorDB struct {
+	ID   int    `db:"id"`
+	Name string `db:"name"`
+}

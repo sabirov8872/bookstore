@@ -27,6 +27,8 @@ type IService interface {
 
 	GetFilename(id int) (string, error)
 	UpdateFilename(id int, filename string) error
+
+	GetAuthors() (*types.ListAuthors, error)
 }
 
 func NewService(repo repository.IRepository) *Service {
@@ -163,4 +165,24 @@ func (s *Service) GetFilename(id int) (string, error) {
 
 func (s *Service) UpdateFilename(id int, filename string) error {
 	return s.repo.UpdateFilename(id, filename)
+}
+
+func (s *Service) GetAuthors() (*types.ListAuthors, error) {
+	authors, totalAuthors, err := s.repo.GetAuthors()
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]*types.Author, len(authors))
+	for i, author := range authors {
+		resp[i] = &types.Author{
+			ID:   author.ID,
+			Name: author.Name,
+		}
+	}
+
+	return &types.ListAuthors{
+		TotalAuthors: totalAuthors,
+		Authors:      resp,
+	}, nil
 }

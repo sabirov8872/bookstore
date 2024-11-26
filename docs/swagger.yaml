@@ -185,6 +185,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/types.CreateUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.CreateUserResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -204,10 +208,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/types.ListBookResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -233,6 +233,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/types.CreateBookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -272,6 +276,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
       summary: Delete book by id
@@ -300,8 +308,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-        "401":
-          description: Unauthorized
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       summary: Get book by id
@@ -338,6 +346,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
       summary: Update book by id
@@ -362,6 +374,8 @@ paths:
           description: Book file
           schema:
             type: file
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -394,19 +408,23 @@ paths:
       responses:
         "200":
           description: OK
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-        "404":
-          description: Not Found
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/types.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      summary: Upload a new book file
+      security:
+      - ApiKeyAuth: []
+      summary: Upload book file
       tags:
       - files
   /users:
@@ -452,6 +470,10 @@ paths:
           description: OK
         "204":
           description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -513,16 +535,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/types.User'
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
         "401":
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:
