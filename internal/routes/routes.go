@@ -25,7 +25,7 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
 	router.HandleFunc("/users", AdminAuth(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
 
-	router.HandleFunc("/books", hand.GetAllBooks).Methods(http.MethodGet)
+	router.HandleFunc("/books", hand.GetBooks).Methods(http.MethodGet)
 	router.HandleFunc("/books/{id}", hand.GetBookById).Methods(http.MethodGet)
 	router.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods(http.MethodPost)
 	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods(http.MethodPut)

@@ -29,8 +29,8 @@ var (
 	//go:embed queries/create_book.sql
 	createBookQuery string
 
-	//go:embed queries/get_all_books.sql
-	getAllBooksQuery string
+	//go:embed queries/get_books.sql
+	getBooksQuery string
 
 	//go:embed queries/get_book_by_id.sql
 	getBookByIdQuery string

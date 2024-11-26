@@ -117,7 +117,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/types.ListAuthors"
+                            "$ref": "#/definitions/types.ListAuthorResponse"
                         }
                     },
                     "500": {
@@ -499,7 +499,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/types.ListGenres"
+                            "$ref": "#/definitions/types.ListGenreResponse"
                         }
                     },
                     "500": {
@@ -778,21 +778,30 @@
             "type": "object",
             "properties": {
                 "author": {
+                    "$ref": "#/definitions/types.Author"
+                },
+                "createdAt": {
                     "type": "string"
                 },
-                "bookName": {
+                "description": {
                     "type": "string"
                 },
                 "filename": {
                     "type": "string"
                 },
                 "genre": {
-                    "type": "string"
+                    "$ref": "#/definitions/types.Genre"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "isbn": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -888,7 +897,7 @@
                 }
             }
         },
-        "types.ListAuthors": {
+        "types.ListAuthorResponse": {
             "type": "object",
             "properties": {
                 "authorsCount": {
@@ -905,6 +914,9 @@
         "types.ListBookResponse": {
             "type": "object",
             "properties": {
+                "booksCount": {
+                    "type": "integer"
+                },
                 "items": {
                     "type": "array",
                     "items": {
@@ -913,7 +925,7 @@
                 }
             }
         },
-        "types.ListGenres": {
+        "types.ListGenreResponse": {
             "type": "object",
             "properties": {
                 "genresCount": {

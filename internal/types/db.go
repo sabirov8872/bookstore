@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type UserDB struct {
 	ID       int    `db:"id"`
 	Username string `db:"username"`
@@ -16,12 +18,15 @@ type GetUserByUsernameDB struct {
 }
 
 type BookDB struct {
-	ID       int    `db:"id"`
-	BookName string `db:"bookname"`
-	Author   string `db:"author"`
-	Genre    string `db:"genre"`
-	ISBN     string `db:"isbn"`
-	Filename string `db:"filename"`
+	ID          int       `db:"id"`
+	Name        string    `db:"name"`
+	Author      AuthorDB  `db:"author"`
+	Genre       GenreDB   `db:"genre"`
+	ISBN        string    `db:"isbn"`
+	Filename    string    `db:"filename"`
+	Description string    `db:"description"`
+	CreatedAt   time.Time `db:"createdAt"`
+	UpdatedAt   time.Time `db:"updatedAt"`
 }
 
 type AuthorDB struct {

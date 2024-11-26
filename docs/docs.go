@@ -124,7 +124,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/types.ListAuthors"
+                            "$ref": "#/definitions/types.ListAuthorResponse"
                         }
                     },
                     "500": {
@@ -506,7 +506,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/types.ListGenres"
+                            "$ref": "#/definitions/types.ListGenreResponse"
                         }
                     },
                     "500": {
@@ -785,21 +785,30 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "author": {
+                    "$ref": "#/definitions/types.Author"
+                },
+                "createdAt": {
                     "type": "string"
                 },
-                "bookName": {
+                "description": {
                     "type": "string"
                 },
                 "filename": {
                     "type": "string"
                 },
                 "genre": {
-                    "type": "string"
+                    "$ref": "#/definitions/types.Genre"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "isbn": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -895,7 +904,7 @@ const docTemplate = `{
                 }
             }
         },
-        "types.ListAuthors": {
+        "types.ListAuthorResponse": {
             "type": "object",
             "properties": {
                 "authorsCount": {
@@ -912,6 +921,9 @@ const docTemplate = `{
         "types.ListBookResponse": {
             "type": "object",
             "properties": {
+                "booksCount": {
+                    "type": "integer"
+                },
                 "items": {
                     "type": "array",
                     "items": {
@@ -920,7 +932,7 @@ const docTemplate = `{
                 }
             }
         },
-        "types.ListGenres": {
+        "types.ListGenreResponse": {
             "type": "object",
             "properties": {
                 "genresCount": {

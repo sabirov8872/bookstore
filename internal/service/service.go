@@ -18,13 +18,13 @@ type IService interface {
 	UpdateUserById(id int, userRole types.UpdateUserByIdRequest) error
 	DeleteUser(id int) error
 
-	GetAllBooks() (*types.ListBookResponse, error)
+	GetBooks() (*types.ListBookResponse, error)
 	GetBookById(id int) (*types.Book, error)
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) error
-	GetAuthors() (*types.ListAuthors, error)
-	GetGenres() (*types.ListGenres, error)
+	GetAuthors() (*types.ListAuthorResponse, error)
+	GetGenres() (*types.ListGenreResponse, error)
 
 	UpdateFilename(id int, filename string) error
 	GetFilename(id int) (string, error)
@@ -100,8 +100,8 @@ func (s *Service) DeleteUser(id int) error {
 	return s.repo.DeleteUser(id)
 }
 
-func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
-	res, err := s.repo.GetAllBooks()
+func (s *Service) GetBooks() (*types.ListBookResponse, error) {
+	res, err := s.repo.GetBooks()
 	if err != nil {
 		return nil, err
 	}
@@ -109,17 +109,27 @@ func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
 	resp := make([]*types.Book, len(res))
 	for i, v := range res {
 		resp[i] = &types.Book{
-			ID:       v.ID,
-			BookName: v.BookName,
-			Author:   v.Author,
-			Genre:    v.Genre,
-			ISBN:     v.ISBN,
-			Filename: v.Filename,
+			ID:   v.ID,
+			Name: v.Name,
+			Author: types.Author{
+				ID:   v.Author.ID,
+				Name: v.Author.Name,
+			},
+			Genre: types.Genre{
+				ID:   v.Genre.ID,
+				Name: v.Genre.Name,
+			},
+			ISBN:        v.ISBN,
+			Filename:    v.Filename,
+			Description: v.Description,
+			CreatedAt:   v.CreatedAt,
+			UpdatedAt:   v.UpdatedAt,
 		}
 	}
 
 	return &types.ListBookResponse{
-		Items: resp,
+		BooksCount: len(resp),
+		Items:      resp,
 	}, nil
 }
 
@@ -130,10 +140,10 @@ func (s *Service) GetBookById(id int) (*types.Book, error) {
 	}
 
 	return &types.Book{
-		ID:       res.ID,
-		BookName: res.BookName,
-		Author:   res.Author,
-		Genre:    res.Genre,
+		ID:   res.ID,
+		Name: res.Name,
+		//Author:   res.Author,
+		//Genre:    res.Genre,
 		ISBN:     res.ISBN,
 		Filename: res.Filename,
 	}, nil
@@ -158,8 +168,8 @@ func (s *Service) DeleteBook(id int) error {
 	return s.repo.DeleteBook(id)
 }
 
-func (s *Service) GetAuthors() (*types.ListAuthors, error) {
-	authors, totalAuthors, err := s.repo.GetAuthors()
+func (s *Service) GetAuthors() (*types.ListAuthorResponse, error) {
+	authors, err := s.repo.GetAuthors()
 	if err != nil {
 		return nil, err
 	}
@@ -172,14 +182,14 @@ func (s *Service) GetAuthors() (*types.ListAuthors, error) {
 		}
 	}
 
-	return &types.ListAuthors{
-		AuthorsCount: totalAuthors,
+	return &types.ListAuthorResponse{
+		AuthorsCount: len(resp),
 		Items:        resp,
 	}, nil
 }
 
-func (s *Service) GetGenres() (*types.ListGenres, error) {
-	genres, totalGenres, err := s.repo.GetGenres()
+func (s *Service) GetGenres() (*types.ListGenreResponse, error) {
+	genres, err := s.repo.GetGenres()
 	if err != nil {
 		return nil, err
 	}
@@ -192,8 +202,8 @@ func (s *Service) GetGenres() (*types.ListGenres, error) {
 		}
 	}
 
-	return &types.ListGenres{
-		GenresCount: totalGenres,
+	return &types.ListGenreResponse{
+		GenresCount: len(resp),
 		Items:       resp,
 	}, nil
 }

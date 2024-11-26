@@ -36,7 +36,7 @@ type IHandler interface {
 	UpdateUserById(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 
-	GetAllBooks(w http.ResponseWriter, r *http.Request)
+	GetBooks(w http.ResponseWriter, r *http.Request)
 	GetBookById(w http.ResponseWriter, r *http.Request)
 	CreateBook(w http.ResponseWriter, r *http.Request)
 	UpdateBook(w http.ResponseWriter, r *http.Request)
@@ -343,7 +343,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	h.cache.Delete(userID + strconv.Itoa(id))
 }
 
-// GetAllBooks
+// GetBooks
 //
 // @Summary        Get all books
 // @Description    All book data is retrieved from the database.
@@ -353,13 +353,13 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // @Success        200 {object} types.ListBookResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /books [get]
-func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetBooks(w http.ResponseWriter, r *http.Request) {
 	if data, ok := h.cache.Get(getAllBooks); ok {
 		writeJSON(w, http.StatusOK, data)
 		return
 	}
 
-	res, err := h.service.GetAllBooks()
+	res, err := h.service.GetBooks()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError,
 			types.ErrorResponse{Message: err.Error()})
@@ -639,7 +639,7 @@ func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 // @Tags           books
 // @Accept         json
 // @Produce        json
-// @Success        200 {object} types.ListAuthors
+// @Success        200 {object} types.ListAuthorResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /authors [get]
 func (h *Handler) GetAuthors(w http.ResponseWriter, r *http.Request) {
@@ -660,7 +660,7 @@ func (h *Handler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 // @Tags           books
 // @Accept         json
 // @Produce        json
-// @Success        200 {object} types.ListGenres
+// @Success        200 {object} types.ListGenreResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /genres [get]
 func (h *Handler) GetGenres(w http.ResponseWriter, r *http.Request) {
