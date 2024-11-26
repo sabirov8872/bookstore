@@ -90,6 +90,16 @@ type Author struct {
 }
 
 type ListAuthors struct {
-	TotalAuthors int       `json:"totalAuthors"`
-	Authors      []*Author `json:"authors"`
+	AuthorsCount int       `json:"authorsCount"`
+	Items        []*Author `json:"items"`
+}
+
+type Genre struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type ListGenres struct {
+	GenresCount int      `json:"genresCount"`
+	Items       []*Genre `json:"items"`
 }

@@ -13,7 +13,6 @@ type Repository struct {
 type IRepository interface {
 	CreateUser(req types.CreateUserRequest) (int, error)
 	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
-
 	GetAllUsers() (resp []*types.UserDB, err error)
 	GetUserByID(id int) (*types.UserDB, error)
 	UpdateUser(id int, req types.UpdateUserRequest) error
@@ -25,11 +24,10 @@ type IRepository interface {
 	CreateBook(req types.CreateBookRequest) (int, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) error
-
 	GetFilename(id int) (string, error)
 	UpdateFilename(id int, filename string) error
-
 	GetAuthors() ([]*types.AuthorDB, int, error)
+	GetGenres() ([]*types.GenreDB, int, error)
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -390,6 +388,21 @@ func (repo *Repository) DeleteBook(id int) error {
 	return nil
 }
 
+func (repo *Repository) UpdateFilename(id int, filename string) error {
+	_, err := repo.DB.Query(updateFilenameQuery, filename, id)
+	return err
+}
+
+func (repo *Repository) GetFilename(id int) (string, error) {
+	var filename string
+	err := repo.DB.QueryRow(getFilenameQuery, id).Scan(&filename)
+	if err != nil {
+		return "", err
+	}
+
+	return filename, nil
+}
+
 func (repo *Repository) GetAuthors() ([]*types.AuthorDB, int, error) {
 	rows, err := repo.DB.Query(getAuthorsQuery)
 	if err != nil {
@@ -398,7 +411,7 @@ func (repo *Repository) GetAuthors() ([]*types.AuthorDB, int, error) {
 	defer rows.Close()
 
 	var authors []*types.AuthorDB
-	var totalAuthors int
+	totalAuthors := 0
 	for rows.Next() {
 		var author types.AuthorDB
 		err = rows.Scan(&author.ID, &author.Name)
@@ -413,17 +426,25 @@ func (repo *Repository) GetAuthors() ([]*types.AuthorDB, int, error) {
 	return authors, totalAuthors, nil
 }
 
-func (repo *Repository) GetFilename(id int) (string, error) {
-	var filename string
-	err := repo.DB.QueryRow(getFilenameQuery, id).Scan(&filename)
+func (repo *Repository) GetGenres() ([]*types.GenreDB, int, error) {
+	rows, err := repo.DB.Query(getGenresQuery)
 	if err != nil {
-		return "", err
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var genres []*types.GenreDB
+	totalGenres := 0
+	for rows.Next() {
+		var genre types.GenreDB
+		err = rows.Scan(&genre.ID, &genre.Name)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		genres = append(genres, &genre)
+		totalGenres += 1
 	}
 
-	return filename, nil
-}
-
-func (repo *Repository) UpdateFilename(id int, filename string) error {
-	_, err := repo.DB.Query(updateFilenameQuery, filename, id)
-	return err
+	return genres, totalGenres, nil
 }

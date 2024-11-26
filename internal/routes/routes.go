@@ -19,29 +19,30 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	router := mux.NewRouter()
 	router.HandleFunc("/auth/sign-up", hand.CreateUser).Methods(http.MethodPost)
 	router.HandleFunc("/auth/sign-in", hand.GetUserByUsername).Methods(http.MethodPost)
-
-	router.HandleFunc("/users", AdminAuthorization(secretKey, hand.GetAllUsers)).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.GetUserById)).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.UpdateUserById)).Methods(http.MethodPut)
-	router.HandleFunc("/users/{id}", AdminAuthorization(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
-	router.HandleFunc("/users", UserAuthorization(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
+	router.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.GetUserById)).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.UpdateUserById)).Methods(http.MethodPut)
+	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
+	router.HandleFunc("/users", AdminAuth(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
 
 	router.HandleFunc("/books", hand.GetAllBooks).Methods(http.MethodGet)
 	router.HandleFunc("/books/{id}", hand.GetBookById).Methods(http.MethodGet)
-	router.HandleFunc("/books", AdminAuthorization(secretKey, hand.CreateBook)).Methods(http.MethodPost)
-	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
-	router.HandleFunc("/books/{id}", AdminAuthorization(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
-	router.HandleFunc("/books/authors", hand.GetAuthors).Methods(http.MethodGet)
+	router.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods(http.MethodPost)
+	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
+	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/files/{id}", hand.GetBookFile).Methods(http.MethodGet)
-	router.HandleFunc("/files/{id}", AdminAuthorization(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
+	router.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
+
+	router.HandleFunc("/authors", hand.GetAuthors).Methods(http.MethodGet)
+	router.HandleFunc("/genres", hand.GetGenres).Methods(http.MethodGet)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	log.Fatal(http.ListenAndServe("localhost:"+port, router))
 }
 
-func UserAuthorization(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		_, err := validateToken(authHeader, secretKey)
@@ -54,7 +55,7 @@ func UserAuthorization(secretKey string, handler http.HandlerFunc) http.HandlerF
 	}
 }
 
-func AdminAuthorization(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func AdminAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		token, err := validateToken(authHeader, secretKey)

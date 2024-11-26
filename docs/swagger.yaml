@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  types.Author:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   types.Book:
     properties:
       author:
@@ -52,6 +59,13 @@ definitions:
       message:
         type: string
     type: object
+  types.Genre:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   types.GetUserByUserRequest:
     properties:
       password:
@@ -66,11 +80,29 @@ definitions:
       userId:
         type: integer
     type: object
+  types.ListAuthors:
+    properties:
+      authorsCount:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/types.Author'
+        type: array
+    type: object
   types.ListBookResponse:
     properties:
       items:
         items:
           $ref: '#/definitions/types.Book'
+        type: array
+    type: object
+  types.ListGenres:
+    properties:
+      genresCount:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/types.Genre'
         type: array
     type: object
   types.ListUserResponse:
@@ -196,6 +228,25 @@ paths:
       summary: Create a new user
       tags:
       - auth
+  /authors:
+    get:
+      consumes:
+      - application/json
+      description: All author data is retrieved from the database.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.ListAuthors'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get all authors
+      tags:
+      - books
   /books:
     get:
       consumes:
@@ -386,7 +437,7 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       summary: Get book file
       tags:
-      - files
+      - books
     post:
       consumes:
       - multipart/form-data
@@ -426,7 +477,26 @@ paths:
       - ApiKeyAuth: []
       summary: Upload book file
       tags:
-      - files
+      - books
+  /genres:
+    get:
+      consumes:
+      - application/json
+      description: All genres data is retrieved from the database.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.ListGenres'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get all genres
+      tags:
+      - books
   /users:
     get:
       consumes:

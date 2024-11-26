@@ -12,7 +12,6 @@ type Service struct {
 type IService interface {
 	CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error)
 	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
-
 	GetAllUsers() (*types.ListUserResponse, error)
 	GetUserById(id int) (*types.User, error)
 	UpdateUser(id int, req types.UpdateUserRequest) error
@@ -24,11 +23,11 @@ type IService interface {
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) error
-
-	GetFilename(id int) (string, error)
-	UpdateFilename(id int, filename string) error
-
 	GetAuthors() (*types.ListAuthors, error)
+	GetGenres() (*types.ListGenres, error)
+
+	UpdateFilename(id int, filename string) error
+	GetFilename(id int) (string, error)
 }
 
 func NewService(repo repository.IRepository) *Service {
@@ -159,14 +158,6 @@ func (s *Service) DeleteBook(id int) error {
 	return s.repo.DeleteBook(id)
 }
 
-func (s *Service) GetFilename(id int) (string, error) {
-	return s.repo.GetFilename(id)
-}
-
-func (s *Service) UpdateFilename(id int, filename string) error {
-	return s.repo.UpdateFilename(id, filename)
-}
-
 func (s *Service) GetAuthors() (*types.ListAuthors, error) {
 	authors, totalAuthors, err := s.repo.GetAuthors()
 	if err != nil {
@@ -182,7 +173,35 @@ func (s *Service) GetAuthors() (*types.ListAuthors, error) {
 	}
 
 	return &types.ListAuthors{
-		TotalAuthors: totalAuthors,
-		Authors:      resp,
+		AuthorsCount: totalAuthors,
+		Items:        resp,
 	}, nil
+}
+
+func (s *Service) GetGenres() (*types.ListGenres, error) {
+	genres, totalGenres, err := s.repo.GetGenres()
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]*types.Genre, len(genres))
+	for i, genre := range genres {
+		resp[i] = &types.Genre{
+			ID:   genre.ID,
+			Name: genre.Name,
+		}
+	}
+
+	return &types.ListGenres{
+		GenresCount: totalGenres,
+		Items:       resp,
+	}, nil
+}
+
+func (s *Service) UpdateFilename(id int, filename string) error {
+	return s.repo.UpdateFilename(id, filename)
+}
+
+func (s *Service) GetFilename(id int) (string, error) {
+	return s.repo.GetFilename(id)
 }

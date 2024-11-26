@@ -28,3 +28,8 @@ type AuthorDB struct {
 	ID   int    `db:"id"`
 	Name string `db:"name"`
 }
+
+type GenreDB struct {
+	ID   int    `db:"id"`
+	Name string `db:"name"`
+}

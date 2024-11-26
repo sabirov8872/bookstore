@@ -2,15 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/mux"
 	"github.com/sabirov8872/bookstore/internal/cache"
 	"github.com/sabirov8872/bookstore/internal/minio_client"
 	"github.com/sabirov8872/bookstore/internal/service"
@@ -35,7 +30,6 @@ type Handler struct {
 type IHandler interface {
 	CreateUser(w http.ResponseWriter, r *http.Request)
 	GetUserByUsername(w http.ResponseWriter, r *http.Request)
-
 	GetAllUsers(w http.ResponseWriter, r *http.Request)
 	GetUserById(w http.ResponseWriter, r *http.Request)
 	UpdateUser(w http.ResponseWriter, r *http.Request)
@@ -47,10 +41,12 @@ type IHandler interface {
 	CreateBook(w http.ResponseWriter, r *http.Request)
 	UpdateBook(w http.ResponseWriter, r *http.Request)
 	DeleteBook(w http.ResponseWriter, r *http.Request)
-	GetAuthors(w http.ResponseWriter, r *http.Request)
 
 	UploadBookFile(w http.ResponseWriter, r *http.Request)
 	GetBookFile(w http.ResponseWriter, r *http.Request)
+
+	GetAuthors(w http.ResponseWriter, r *http.Request)
+	GetGenres(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHandler(service service.IService, secretKey string,
@@ -539,7 +535,7 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 //
 // @Summary       Upload book file
 // @Description   Upload a file for the specified book ID, replacing the existing file if any.
-// @Tags          files
+// @Tags          books
 // @Accept        multipart/form-data
 // @Produce       json
 // @Security      ApiKeyAuth
@@ -601,7 +597,7 @@ func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 //
 // @Summary           Get book file
 // @Description       This endpoint retrieves an object from the Minio bucket by its name.
-// @Tags              files
+// @Tags              books
 // @Accept            json
 // @Produce           application/pdf
 // @Param id          path int true "Book id"
@@ -636,6 +632,16 @@ func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filename, time.Now(), file)
 }
 
+// GetAuthors
+//
+// @Summary        Get all authors
+// @Description    All author data is retrieved from the database.
+// @Tags           books
+// @Accept         json
+// @Produce        json
+// @Success        200 {object} types.ListAuthors
+// @Failure        500 {object} types.ErrorResponse
+// @Router         /authors [get]
 func (h *Handler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 	listAuthors, err := h.service.GetAuthors()
 	if err != nil {
@@ -647,65 +653,23 @@ func (h *Handler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, listAuthors)
 }
 
-func getID(r *http.Request) (int, error) {
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
+// GetGenres
+//
+// @Summary        Get all genres
+// @Description    All genres data is retrieved from the database.
+// @Tags           books
+// @Accept         json
+// @Produce        json
+// @Success        200 {object} types.ListGenres
+// @Failure        500 {object} types.ErrorResponse
+// @Router         /genres [get]
+func (h *Handler) GetGenres(w http.ResponseWriter, r *http.Request) {
+	listGenres, err := h.service.GetGenres()
 	if err != nil {
-		return 0, err
+		writeJSON(w, http.StatusInternalServerError,
+			types.ErrorResponse{Message: err.Error()})
+		return
 	}
 
-	return id, nil
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		fmt.Println(err)
-	}
-}
-
-func createToken(id int, userRole, secretKey string) (string, error) {
-	claims := &jwt.MapClaims{
-		"id":   id,
-		"role": userRole,
-		"exp":  time.Now().Add(time.Hour).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString([]byte(secretKey))
-}
-
-func hashingPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.MinCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(hashedPassword), nil
-}
-
-func getUserIdFromToken(authHeader, secretKey string) (int, error) {
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		authHeader = authHeader[len("Bearer "):]
-	}
-
-	token, _ := jwt.Parse(
-		authHeader,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(secretKey), nil
-		})
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, errors.New("invalid claims")
-	}
-
-	userId, ok := claims["id"].(float64)
-	if !ok {
-		return 0, errors.New("invalid user id")
-	}
-
-	return int(userId), nil
+	writeJSON(w, http.StatusOK, listGenres)
 }

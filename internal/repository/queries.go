@@ -49,4 +49,7 @@ var (
 
 	//go:embed queries/get_authors.sql
 	getAuthorsQuery string
+
+	//go:embed queries/get_genres.sql
+	getGenresQuery string
 )

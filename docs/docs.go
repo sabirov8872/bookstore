@@ -107,6 +107,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/authors": {
+            "get": {
+                "description": "All author data is retrieved from the database.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "books"
+                ],
+                "summary": "Get all authors",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.ListAuthors"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/books": {
             "get": {
                 "description": "All book data is retrieved from the database.",
@@ -363,7 +392,7 @@ const docTemplate = `{
                     "application/pdf"
                 ],
                 "tags": [
-                    "files"
+                    "books"
                 ],
                 "summary": "Get book file",
                 "parameters": [
@@ -413,7 +442,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "files"
+                    "books"
                 ],
                 "summary": "Upload book file",
                 "parameters": [
@@ -449,6 +478,35 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/genres": {
+            "get": {
+                "description": "All genres data is retrieved from the database.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "books"
+                ],
+                "summary": "Get all genres",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.ListGenres"
                         }
                     },
                     "500": {
@@ -712,6 +770,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "types.Author": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "types.Book": {
             "type": "object",
             "properties": {
@@ -793,6 +862,17 @@ const docTemplate = `{
                 }
             }
         },
+        "types.Genre": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "types.GetUserByUserRequest": {
             "type": "object",
             "properties": {
@@ -815,6 +895,20 @@ const docTemplate = `{
                 }
             }
         },
+        "types.ListAuthors": {
+            "type": "object",
+            "properties": {
+                "authorsCount": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Author"
+                    }
+                }
+            }
+        },
         "types.ListBookResponse": {
             "type": "object",
             "properties": {
@@ -822,6 +916,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/types.Book"
+                    }
+                }
+            }
+        },
+        "types.ListGenres": {
+            "type": "object",
+            "properties": {
+                "genresCount": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Genre"
                     }
                 }
             }
