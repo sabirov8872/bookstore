@@ -1,1 +1,3 @@
-select filename from books where id = $1
+select filename
+from books
+where id = $1

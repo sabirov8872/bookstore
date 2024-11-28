@@ -17,25 +17,35 @@ import (
 
 func Run(hand handler.IHandler, port, secretKey string) {
 	router := mux.NewRouter()
-	router.HandleFunc("/auth/sign-up", hand.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/auth/sign-in", hand.GetUserByUsername).Methods(http.MethodPost)
+	router.HandleFunc("/sign-up", hand.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("/sign-in", hand.GetUserByUsername).Methods(http.MethodPost)
+
 	router.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.GetUserById)).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.UpdateUserById)).Methods(http.MethodPut)
 	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
-	router.HandleFunc("/users", AdminAuth(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
+	router.HandleFunc("/users", UserAuth(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
 
-	router.HandleFunc("/books", hand.GetBooks).Methods(http.MethodGet)
+	router.HandleFunc("/books", hand.GetAllBooks).Methods(http.MethodGet)
 	router.HandleFunc("/books/{id}", hand.GetBookById).Methods(http.MethodGet)
 	router.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods(http.MethodPost)
 	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
 	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
 
+	router.HandleFunc("/authors", hand.GetAllAuthors).Methods(http.MethodGet)
+	router.HandleFunc("/authors/{id}", hand.GetBooksByAuthorId).Methods(http.MethodGet)
+	router.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods(http.MethodPost)
+	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods(http.MethodPut)
+	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods(http.MethodDelete)
+
+	router.HandleFunc("/genres", hand.GetAllGenres).Methods(http.MethodGet)
+	router.HandleFunc("/genres/{id}", hand.GetBooksByGenreId).Methods(http.MethodGet)
+	router.HandleFunc("/genres", AdminAuth(secretKey, hand.CreateGenre)).Methods(http.MethodPost)
+	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods(http.MethodPut)
+	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods(http.MethodDelete)
+
 	router.HandleFunc("/files/{id}", hand.GetBookFile).Methods(http.MethodGet)
 	router.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
-
-	router.HandleFunc("/authors", hand.GetAuthors).Methods(http.MethodGet)
-	router.HandleFunc("/genres", hand.GetGenres).Methods(http.MethodGet)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
@@ -45,9 +55,26 @@ func Run(hand handler.IHandler, port, secretKey string) {
 func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-		_, err := validateToken(authHeader, secretKey)
+		token, err := validateToken(authHeader, secretKey)
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading token"})
+			return
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok {
+			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading role"})
+			return
+		}
+
+		if role != "admin" && role != "user" {
+			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "invalid role"})
 			return
 		}
 

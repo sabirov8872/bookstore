@@ -44,7 +44,8 @@ type UpdateUserByIdRequest struct {
 }
 
 type ListUserResponse struct {
-	Items []*User `json:"items"`
+	UsersCount int     `json:"usersCount"`
+	Items      []*User `json:"items"`
 }
 
 type CreateUserResponse struct {
@@ -73,21 +74,23 @@ type ListBookResponse struct {
 }
 
 type CreateBookRequest struct {
-	BookName string `json:"bookName"`
-	Genre    string `json:"genre"`
-	Author   string `json:"author"`
-	ISBN     string `json:"isbn"`
-}
-
-type UpdateBookRequest struct {
-	BookName string `json:"bookName"`
-	Genre    string `json:"genre"`
-	Author   string `json:"author"`
-	ISBN     string `json:"isbn"`
+	AuthorId    int    `json:"authorId"`
+	GenreId     int    `json:"genreId"`
+	Name        string `json:"name"`
+	ISBN        string `json:"isbn"`
+	Description string `json:"description"`
 }
 
 type CreateBookResponse struct {
 	ID int `json:"bookId"`
+}
+
+type UpdateBookRequest struct {
+	AuthorId    int    `json:"authorId"`
+	GenreId     int    `json:"genreId"`
+	Name        string `json:"name"`
+	ISBN        string `json:"isbn"`
+	Description string `json:"description"`
 }
 
 type Author struct {
@@ -108,4 +111,28 @@ type Genre struct {
 type ListGenreResponse struct {
 	GenresCount int      `json:"genresCount"`
 	Items       []*Genre `json:"items"`
+}
+
+type CreateAuthorRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateAuthorResponse struct {
+	ID int `json:"authorId"`
+}
+
+type UpdateAuthorRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateGenreResponse struct {
+	ID int `json:"genreId"`
+}
+
+type CreateGenreRequest struct {
+	Name string `json:"name"`
+}
+
+type UpdateGenreRequest struct {
+	Name string `json:"name"`
 }

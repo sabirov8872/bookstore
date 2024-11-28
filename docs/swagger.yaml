@@ -28,20 +28,42 @@ definitions:
       updatedAt:
         type: string
     type: object
+  types.CreateAuthorRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  types.CreateAuthorResponse:
+    properties:
+      authorId:
+        type: integer
+    type: object
   types.CreateBookRequest:
     properties:
-      author:
+      authorId:
+        type: integer
+      description:
         type: string
-      bookName:
-        type: string
-      genre:
-        type: string
+      genreId:
+        type: integer
       isbn:
+        type: string
+      name:
         type: string
     type: object
   types.CreateBookResponse:
     properties:
       bookId:
+        type: integer
+    type: object
+  types.CreateGenreRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  types.CreateGenreResponse:
+    properties:
+      genreId:
         type: integer
     type: object
   types.CreateUserRequest:
@@ -119,16 +141,30 @@ definitions:
         items:
           $ref: '#/definitions/types.User'
         type: array
+      usersCount:
+        type: integer
+    type: object
+  types.UpdateAuthorRequest:
+    properties:
+      name:
+        type: string
     type: object
   types.UpdateBookRequest:
     properties:
-      author:
+      authorId:
+        type: integer
+      description:
         type: string
-      bookName:
-        type: string
-      genre:
-        type: string
+      genreId:
+        type: integer
       isbn:
+        type: string
+      name:
+        type: string
+    type: object
+  types.UpdateGenreRequest:
+    properties:
+      name:
         type: string
     type: object
   types.UpdateUserByIdRequest:
@@ -176,71 +212,11 @@ info:
   title: Bookstore
   version: "1.0"
 paths:
-  /auth/sign-in:
-    post:
-      consumes:
-      - application/json
-      description: User username and password are checked
-      parameters:
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.GetUserByUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.GetUserByUserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: User verification
-      tags:
-      - auth
-  /auth/sign-up:
-    post:
-      consumes:
-      - application/json
-      description: A new user will be created. Hashed before saving to database.
-      parameters:
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.CreateUserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.CreateUserResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Create a new user
-      tags:
-      - auth
   /authors:
     get:
       consumes:
       - application/json
-      description: All author data is retrieved from the database.
+      description: For admins, users and guests
       produces:
       - application/json
       responses:
@@ -254,12 +230,140 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       summary: Get all authors
       tags:
+      - authors
+    post:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Author data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateAuthorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.CreateAuthorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new author
+      tags:
+      - authors
+  /authors/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Author ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete author by id
+      tags:
+      - authors
+    get:
+      consumes:
+      - application/json
+      description: For admins, users and guests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.ListBookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get books by author id
+      tags:
       - books
+    put:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Author ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Author data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateAuthorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update author
+      tags:
+      - authors
   /books:
     get:
       consumes:
       - application/json
-      description: All book data is retrieved from the database.
+      description: For admins, users and guests
       produces:
       - application/json
       responses:
@@ -277,7 +381,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: A new book is created using the given information.
+      description: For admins
       parameters:
       - description: Book data
         in: body
@@ -313,7 +417,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: The book will be deleted using the given data.
+      description: For admins
       parameters:
       - description: Book id
         in: path
@@ -325,8 +429,6 @@ paths:
       responses:
         "200":
           description: OK
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -347,7 +449,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: User information is obtained by id and data.
+      description: For admins, users and guests
       parameters:
       - description: Book id
         in: path
@@ -358,11 +460,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: The requested book data
+          description: OK
           schema:
             $ref: '#/definitions/types.Book'
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -377,7 +477,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: The book will be updated using the given id and data.
+      description: For admins
       parameters:
       - description: Book ID
         in: path
@@ -395,8 +495,6 @@ paths:
       responses:
         "200":
           description: OK
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -418,8 +516,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: This endpoint retrieves an object from the Minio bucket by its
-        name.
+      description: For admins, users and guests
       parameters:
       - description: Book id
         in: path
@@ -433,8 +530,6 @@ paths:
           description: Book file
           schema:
             type: file
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -445,19 +540,18 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       summary: Get book file
       tags:
-      - books
+      - files
     post:
       consumes:
       - multipart/form-data
-      description: Upload a file for the specified book ID, replacing the existing
-        file if any.
+      description: For admins
       parameters:
       - description: Book id
         in: path
         name: id
         required: true
         type: integer
-      - description: Book file
+      - description: Book pdf file
         in: formData
         name: file
         required: true
@@ -467,8 +561,6 @@ paths:
       responses:
         "200":
           description: OK
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -485,12 +577,12 @@ paths:
       - ApiKeyAuth: []
       summary: Upload book file
       tags:
-      - books
+      - files
   /genres:
     get:
       consumes:
       - application/json
-      description: All genres data is retrieved from the database.
+      description: For admins, users and guests
       produces:
       - application/json
       responses:
@@ -504,12 +596,200 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       summary: Get all genres
       tags:
+      - genres
+    post:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Genre data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateGenreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.CreateGenreResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new genre
+      tags:
+      - genres
+  /genres/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete genre by id
+      tags:
+      - genres
+    get:
+      consumes:
+      - application/json
+      description: For admins, users and guests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.ListBookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get books by genre id
+      tags:
       - books
+    put:
+      consumes:
+      - application/json
+      description: For admins
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateGenreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update genre
+      tags:
+      - genres
+  /sign-in:
+    post:
+      consumes:
+      - application/json
+      description: For users and admins
+      parameters:
+      - description: User data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.GetUserByUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.GetUserByUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: User verification
+      tags:
+      - auth
+  /sign-up:
+    post:
+      consumes:
+      - application/json
+      description: For users
+      parameters:
+      - description: User data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.CreateUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Registration
+      tags:
+      - auth
   /users:
     get:
       consumes:
       - application/json
-      description: All user data is retrieved from the database.
+      description: For admins
       produces:
       - application/json
       responses:
@@ -533,7 +813,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: User information is updated using the provided information.
+      description: For users and admins
       parameters:
       - description: User data
         in: body
@@ -546,8 +826,6 @@ paths:
       responses:
         "200":
           description: OK
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -569,7 +847,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: User data will be deleted using the given information.
+      description: For admins
       parameters:
       - description: User ID
         in: path
@@ -591,6 +869,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
       summary: Delete user by id
@@ -599,7 +881,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: User information is obtained by id.
+      description: For admins
       parameters:
       - description: User id
         in: path
@@ -613,14 +895,16 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/types.User'
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:
@@ -631,7 +915,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: The user will be updated using the given data.
+      description: For admins
       parameters:
       - description: User ID
         in: path
@@ -649,14 +933,16 @@ paths:
       responses:
         "200":
           description: OK
-        "204":
-          description: No Content
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/types.ErrorResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:

@@ -20,6 +20,7 @@ type Config struct {
 	MinioSecretAccessKey string
 	MinioBucketName      string
 	MinioLocation        string
+	RedisAddress         string
 }
 
 func GetConfig() (*Config, error) {
@@ -42,5 +43,6 @@ func GetConfig() (*Config, error) {
 		MinioSecretAccessKey: os.Getenv("MINIO_SECRET_ACCESS_KEY"),
 		MinioBucketName:      os.Getenv("MINIO_BUCKET"),
 		MinioLocation:        os.Getenv("MINIO_LOCATION"),
+		RedisAddress:         os.Getenv("REDIS_ADDRESS"),
 	}, nil
 }

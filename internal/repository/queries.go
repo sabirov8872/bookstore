@@ -3,8 +3,10 @@ package repository
 import _ "embed"
 
 var (
-
 	//users
+	//go:embed queries/create_user.sql
+	createUserQuery string
+
 	//go:embed queries/get_user_by_username.sql
 	getUserByUsernameQuery string
 
@@ -13,9 +15,6 @@ var (
 
 	//go:embed queries/get_user_by_id.sql
 	getUserByIdQuery string
-
-	//go:embed queries/create_user.sql
-	createUserQuery string
 
 	//go:embed queries/update_user.sql
 	updateUserQuery string
@@ -26,14 +25,21 @@ var (
 	//go:embed queries/update_user_by_id.sql
 	updateUserByIdQuery string
 
-	//go:embed queries/create_book.sql
-	createBookQuery string
+	//books
+	//go:embed queries/get_all_books.sql
+	getAllBooksQuery string
 
-	//go:embed queries/get_books.sql
-	getBooksQuery string
+	//go:embed queries/get_books_by_author_id.sql
+	getBooksByAuthorIdQuery string
+
+	//go:embed queries/get_books_by_genre_id.sql
+	getBooksByGenreIdQuery string
 
 	//go:embed queries/get_book_by_id.sql
 	getBookByIdQuery string
+
+	//go:embed queries/create_book.sql
+	createBookQuery string
 
 	//go:embed queries/update_book.sql
 	updateBookQuery string
@@ -41,15 +47,36 @@ var (
 	//go:embed queries/delete_book.sql
 	deleteBookQuery string
 
+	//authors
+	//go:embed queries/get_all_authors.sql
+	getAllAuthorsQuery string
+
+	//go:embed queries/create_author.sql
+	createAuthorQuery string
+
+	//go:embed queries/update_author.sql
+	updateAuthorQuery string
+
+	//go:embed queries/delete_author.sql
+	deleteAuthorQuery string
+
+	//genres
+	//go:embed queries/get_all_genres.sql
+	getAllGenresQuery string
+
+	//go:embed queries/create_genre.sql
+	createGenreQuery string
+
+	//go:embed queries/update_genre.sql
+	updateGenreQuery string
+
+	//go:embed queries/delete_genre.sql
+	deleteGenreQuery string
+
+	//files
 	//go:embed queries/get_filename.sql
 	getFilenameQuery string
 
 	//go:embed queries/update_filename.sql
 	updateFilenameQuery string
-
-	//go:embed queries/get_authors.sql
-	getAuthorsQuery string
-
-	//go:embed queries/get_genres.sql
-	getGenresQuery string
 )

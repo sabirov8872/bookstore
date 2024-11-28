@@ -1,7 +1,10 @@
 insert into books (author_id,
                    genre_id,
-                   bookname,
+                   name,
                    isbn,
-                   filename)
-values($1, $2, $3, $4, $5)
+                   filename,
+                   description,
+                   created_at,
+                   updated_at)
+values($1, $2, $3, $4, $5, $6, $7, $8)
 returning id

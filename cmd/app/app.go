@@ -6,10 +6,10 @@ import (
 	"log"
 
 	_ "github.com/lib/pq"
-	"github.com/sabirov8872/bookstore/internal/cache"
+	"github.com/redis/go-redis/v9"
 	"github.com/sabirov8872/bookstore/internal/config"
 	"github.com/sabirov8872/bookstore/internal/handler"
-	"github.com/sabirov8872/bookstore/internal/minio_client"
+	"github.com/sabirov8872/bookstore/internal/minioClient"
 	"github.com/sabirov8872/bookstore/internal/repository"
 	"github.com/sabirov8872/bookstore/internal/routes"
 	"github.com/sabirov8872/bookstore/internal/service"
@@ -30,11 +30,7 @@ func Run() {
 	}
 	defer db.Close()
 
-	if err = db.Ping(); err != nil {
-		log.Fatal("Error pinging database")
-	}
-
-	minioClient, err := minio_client.NewMinioClient(
+	MinioClient, err := minioClient.NewMinioClient(
 		cfg.MinioEndpoint,
 		cfg.MinioAccessKeyID,
 		cfg.MinioSecretAccessKey,
@@ -43,15 +39,20 @@ func Run() {
 		log.Fatal("Error connecting to minio")
 	}
 
-	if err = minioClient.CreateBucket(cfg.MinioLocation); err != nil {
+	err = MinioClient.CreateBucket(cfg.MinioLocation)
+	if err != nil {
 		log.Fatal("Error creating bucket")
 	}
-	fmt.Println("Connected to minio and created bucket")
 
-	Cache := cache.New()
+	cache := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddress,
+		Password: "",
+		DB:       0,
+	})
+	fmt.Println("Connected to redis")
 
 	repo := repository.NewRepository(db)
 	serv := service.NewService(repo)
-	hand := handler.NewHandler(serv, cfg.SecretKey, Cache, minioClient)
+	hand := handler.NewHandler(serv, cfg.SecretKey, cache, MinioClient)
 	routes.Run(hand, cfg.ServerPort, cfg.SecretKey)
 }
