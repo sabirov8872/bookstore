@@ -342,19 +342,6 @@ paths:
       consumes:
       - application/json
       description: For admins, users and guests
-      parameters:
-      - default: book_id
-        description: Category of items
-        in: query
-        name: filter
-        required: true
-        type: string
-      - default: 0
-        description: id
-        in: query
-        name: id
-        required: true
-        type: integer
       produces:
       - application/json
       responses:

@@ -223,24 +223,6 @@ const docTemplate = `{
                     "books"
                 ],
                 "summary": "Get all books",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "book_id",
-                        "description": "Category of items",
-                        "name": "filter",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "id",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
