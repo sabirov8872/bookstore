@@ -299,28 +299,6 @@ paths:
       summary: Delete author by id
       tags:
       - authors
-    get:
-      consumes:
-      - application/json
-      description: For admins, users and guests
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.ListBookResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get books by author id
-      tags:
-      - books
     put:
       consumes:
       - application/json
@@ -356,7 +334,7 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Update author
+      summary: Update author by id
       tags:
       - authors
   /books:
@@ -364,6 +342,19 @@ paths:
       consumes:
       - application/json
       description: For admins, users and guests
+      parameters:
+      - default: book_id
+        description: Category of items
+        in: query
+        name: filter
+        required: true
+        type: string
+      - default: 0
+        description: id
+        in: query
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -538,7 +529,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
-      summary: Get book file
+      summary: Get book file by book id
       tags:
       - files
     post:
@@ -575,7 +566,7 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Upload book file
+      summary: Upload book file by book id
       tags:
       - files
   /genres:
@@ -665,28 +656,6 @@ paths:
       summary: Delete genre by id
       tags:
       - genres
-    get:
-      consumes:
-      - application/json
-      description: For admins, users and guests
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.ListBookResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get books by genre id
-      tags:
-      - books
     put:
       consumes:
       - application/json
@@ -722,7 +691,7 @@ paths:
             $ref: '#/definitions/types.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Update genre
+      summary: Update genre by id
       tags:
       - genres
   /sign-in:

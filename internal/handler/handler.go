@@ -47,9 +47,7 @@ type IHandler interface {
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 
 	GetAllBooks(w http.ResponseWriter, r *http.Request)
-	GetBooksByAuthorId(w http.ResponseWriter, r *http.Request)
 	GetBookById(w http.ResponseWriter, r *http.Request)
-	GetBooksByGenreId(w http.ResponseWriter, r *http.Request)
 	CreateBook(w http.ResponseWriter, r *http.Request)
 	UpdateBook(w http.ResponseWriter, r *http.Request)
 	DeleteBook(w http.ResponseWriter, r *http.Request)
@@ -511,110 +509,6 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// GetBooksByAuthorId
-//
-// @Summary        Get books by author id
-// @Description    For admins, users and guests
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Success        200 {object} types.ListBookResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors/{id} [get]
-func (h *Handler) GetBooksByAuthorId(w http.ResponseWriter, r *http.Request) {
-	data, err := h.cache.Get(r.Context(), getBooksByAuthorId).Result()
-	if err == nil {
-		var resp types.ListBookResponse
-		err = json.Unmarshal([]byte(data), &resp)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		writeJSON(w, http.StatusOK, resp)
-		return
-	}
-
-	id, err := getID(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid author id"})
-		return
-	}
-
-	res, err := h.service.GetBooksByAuthorId(id)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	jsonData, err := json.Marshal(res)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Set(r.Context(), getBooksByAuthorId, string(jsonData), 30*time.Minute).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, res)
-}
-
-// GetBooksByGenreId
-//
-// @Summary        Get books by genre id
-// @Description    For admins, users and guests
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Success        200 {object} types.ListBookResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /genres/{id} [get]
-func (h *Handler) GetBooksByGenreId(w http.ResponseWriter, r *http.Request) {
-	data, err := h.cache.Get(r.Context(), getBooksByGenreId).Result()
-	if err == nil {
-		var resp types.ListBookResponse
-		err = json.Unmarshal([]byte(data), &resp)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		writeJSON(w, http.StatusOK, resp)
-		return
-	}
-
-	id, err := getID(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
-		return
-	}
-
-	res, err := h.service.GetBooksByAuthorId(id)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	jsonData, err := json.Marshal(res)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Set(r.Context(), getBooksByGenreId, string(jsonData), 30*time.Minute).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, res)
-}
-
 // CreateBook
 //
 // @Summary        Create a new book
@@ -868,7 +762,7 @@ func (h *Handler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAuthor
 //
-// @Summary        Update author
+// @Summary        Update author by id
 // @Description    For admins
 // @Tags           authors
 // @Accept         json
@@ -944,7 +838,7 @@ func (h *Handler) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 
 // UploadBookFile
 //
-// @Summary       Upload book file
+// @Summary       Upload book file by book id
 // @Description   For admins
 // @Tags          files
 // @Accept        multipart/form-data
@@ -994,7 +888,7 @@ func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 
 // GetBookFile
 //
-// @Summary           Get book file
+// @Summary           Get book file by book id
 // @Description       For admins, users and guests
 // @Tags              files
 // @Accept            json
@@ -1112,7 +1006,7 @@ func (h *Handler) CreateGenre(w http.ResponseWriter, r *http.Request) {
 
 // UpdateGenre
 //
-// @Summary        Update genre
+// @Summary        Update genre by id
 // @Description    For admins
 // @Tags           genres
 // @Accept         json

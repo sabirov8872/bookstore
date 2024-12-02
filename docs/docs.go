@@ -100,39 +100,6 @@ const docTemplate = `{
             }
         },
         "/authors/{id}": {
-            "get": {
-                "description": "For admins, users and guests",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "books"
-                ],
-                "summary": "Get books by author id",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/types.ListBookResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            },
             "put": {
                 "security": [
                     {
@@ -149,7 +116,7 @@ const docTemplate = `{
                 "tags": [
                     "authors"
                 ],
-                "summary": "Update author",
+                "summary": "Update author by id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -256,6 +223,24 @@ const docTemplate = `{
                     "books"
                 ],
                 "summary": "Get all books",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "book_id",
+                        "description": "Category of items",
+                        "name": "filter",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -492,7 +477,7 @@ const docTemplate = `{
                 "tags": [
                     "files"
                 ],
-                "summary": "Get book file",
+                "summary": "Get book file by book id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -539,7 +524,7 @@ const docTemplate = `{
                 "tags": [
                     "files"
                 ],
-                "summary": "Upload book file",
+                "summary": "Upload book file by book id",
                 "parameters": [
                     {
                         "type": "integer",
@@ -666,39 +651,6 @@ const docTemplate = `{
             }
         },
         "/genres/{id}": {
-            "get": {
-                "description": "For admins, users and guests",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "books"
-                ],
-                "summary": "Get books by genre id",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/types.ListBookResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            },
             "put": {
                 "security": [
                     {
@@ -715,7 +667,7 @@ const docTemplate = `{
                 "tags": [
                     "genres"
                 ],
-                "summary": "Update genre",
+                "summary": "Update genre by id",
                 "parameters": [
                     {
                         "type": "integer",

@@ -22,8 +22,6 @@ type IRepository interface {
 	DeleteUser(id int) error
 
 	GetAllBooks() ([]*types.BookDB, error)
-	GetBooksByAuthorId(id int) ([]*types.BookDB, error)
-	GetBooksByGenreId(id int) ([]*types.BookDB, error)
 	GetBookByID(id int) (*types.BookDB, error)
 	CreateBook(req types.CreateBookRequest) (int, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
@@ -197,70 +195,6 @@ func (repo *Repository) GetBookByID(id int) (*types.BookDB, error) {
 	}
 
 	return &res, nil
-}
-
-func (repo *Repository) GetBooksByAuthorId(id int) ([]*types.BookDB, error) {
-	rows, err := repo.DB.Query(getBooksByAuthorIdQuery, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var resp []*types.BookDB
-	for rows.Next() {
-		var b types.BookDB
-		err = rows.Scan(
-			&b.ID,
-			&b.Name,
-			&b.Author.ID,
-			&b.Author.Name,
-			&b.Genre.ID,
-			&b.Genre.Name,
-			&b.ISBN,
-			&b.Filename,
-			&b.Description,
-			&b.CreatedAt,
-			&b.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-
-		resp = append(resp, &b)
-	}
-
-	return resp, nil
-}
-
-func (repo *Repository) GetBooksByGenreId(id int) ([]*types.BookDB, error) {
-	rows, err := repo.DB.Query(getBooksByGenreIdQuery, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var resp []*types.BookDB
-	for rows.Next() {
-		var b types.BookDB
-		err = rows.Scan(
-			&b.ID,
-			&b.Name,
-			&b.Author.ID,
-			&b.Author.Name,
-			&b.Genre.ID,
-			&b.Genre.Name,
-			&b.ISBN,
-			&b.Filename,
-			&b.Description,
-			&b.CreatedAt,
-			&b.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-
-		resp = append(resp, &b)
-	}
-
-	return resp, nil
 }
 
 func (repo *Repository) CreateBook(req types.CreateBookRequest) (int, error) {

@@ -23,7 +23,7 @@ CREATE TABLE books (
     genre_id     INT NOT NULL,
     name         TEXT NOT NULL,
     isbn         TEXT NOT NULL,
-    filename     TEXT NOT NULL,
+    filename     TEXT UNIQUE NOT NULL,
     FOREIGN KEY (author_id) REFERENCES authors(id),
     FOREIGN KEY (genre_id) REFERENCES genres(id)
 );

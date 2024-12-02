@@ -33,13 +33,11 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/authors", hand.GetAllAuthors).Methods(http.MethodGet)
-	router.HandleFunc("/authors/{id}", hand.GetBooksByAuthorId).Methods(http.MethodGet)
 	router.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods(http.MethodPost)
 	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods(http.MethodPut)
 	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/genres", hand.GetAllGenres).Methods(http.MethodGet)
-	router.HandleFunc("/genres/{id}", hand.GetBooksByGenreId).Methods(http.MethodGet)
 	router.HandleFunc("/genres", AdminAuth(secretKey, hand.CreateGenre)).Methods(http.MethodPost)
 	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods(http.MethodPut)
 	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods(http.MethodDelete)

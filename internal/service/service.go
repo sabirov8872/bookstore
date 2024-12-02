@@ -21,8 +21,6 @@ type IService interface {
 
 	GetAllBooks() (*types.ListBookResponse, error)
 	GetBookById(id int) (*types.Book, error)
-	GetBooksByAuthorId(id int) (*types.ListBookResponse, error)
-	GetBooksByGenreId(id int) (*types.ListBookResponse, error)
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
 	DeleteBook(id int) (string, error)
@@ -167,72 +165,6 @@ func (s *Service) GetBookById(id int) (*types.Book, error) {
 		Description: res.Description,
 		CreatedAt:   res.CreatedAt,
 		UpdatedAt:   res.UpdatedAt,
-	}, nil
-}
-
-func (s *Service) GetBooksByAuthorId(id int) (*types.ListBookResponse, error) {
-	res, err := s.repo.GetBooksByAuthorId(id)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := make([]*types.Book, len(res))
-	for i, v := range res {
-		resp[i] = &types.Book{
-			ID:   v.ID,
-			Name: v.Name,
-			Author: types.Author{
-				ID:   v.Author.ID,
-				Name: v.Author.Name,
-			},
-			Genre: types.Genre{
-				ID:   v.Genre.ID,
-				Name: v.Genre.Name,
-			},
-			ISBN:        v.ISBN,
-			Filename:    v.Filename,
-			Description: v.Description,
-			CreatedAt:   v.CreatedAt,
-			UpdatedAt:   v.UpdatedAt,
-		}
-	}
-
-	return &types.ListBookResponse{
-		BooksCount: len(resp),
-		Items:      resp,
-	}, nil
-}
-
-func (s *Service) GetBooksByGenreId(id int) (*types.ListBookResponse, error) {
-	res, err := s.repo.GetBooksByGenreId(id)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := make([]*types.Book, len(res))
-	for i, v := range res {
-		resp[i] = &types.Book{
-			ID:   v.ID,
-			Name: v.Name,
-			Author: types.Author{
-				ID:   v.Author.ID,
-				Name: v.Author.Name,
-			},
-			Genre: types.Genre{
-				ID:   v.Genre.ID,
-				Name: v.Genre.Name,
-			},
-			ISBN:        v.ISBN,
-			Filename:    v.Filename,
-			Description: v.Description,
-			CreatedAt:   v.CreatedAt,
-			UpdatedAt:   v.UpdatedAt,
-		}
-	}
-
-	return &types.ListBookResponse{
-		BooksCount: len(resp),
-		Items:      resp,
 	}, nil
 }
 
