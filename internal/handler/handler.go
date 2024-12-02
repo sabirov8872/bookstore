@@ -53,6 +53,7 @@ type IHandler interface {
 	DeleteBook(w http.ResponseWriter, r *http.Request)
 
 	GetAllAuthors(w http.ResponseWriter, r *http.Request)
+	GetAuthorById(w http.ResponseWriter, r *http.Request)
 	CreateAuthor(w http.ResponseWriter, r *http.Request)
 	UpdateAuthor(w http.ResponseWriter, r *http.Request)
 	DeleteAuthor(w http.ResponseWriter, r *http.Request)
@@ -723,6 +724,33 @@ func (h *Handler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, listAuthors)
 }
 
+// GetAuthorById
+//
+// @Summary        Get author by id
+// @Description    For admins, users and guests
+// @Tags           authors
+// @Accept         json
+// @Produce        json
+// @Success        200 {object} types.Author
+// @Failure        400 {object} types.ErrorResponse
+// @Failure        500 {object} types.ErrorResponse
+// @Router         /authors/{id} [get]
+func (h *Handler) GetAuthorById(w http.ResponseWriter, r *http.Request) {
+	id, err := getID(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		return
+	}
+
+	res, err := h.service.GetAuthorById(id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, res)
+}
+
 // CreateAuthor
 //
 // @Summary        Create a new author
@@ -946,7 +974,7 @@ func (h *Handler) GetAllGenres(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listGenres, err := h.service.GetGenres()
+	listGenres, err := h.service.GetAllGenres()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return

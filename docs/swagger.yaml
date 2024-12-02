@@ -299,6 +299,28 @@ paths:
       summary: Delete author by id
       tags:
       - authors
+    get:
+      consumes:
+      - application/json
+      description: For admins, users and guests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Author'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get author by id
+      tags:
+      - authors
     put:
       consumes:
       - application/json

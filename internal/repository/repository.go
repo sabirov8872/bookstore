@@ -28,11 +28,12 @@ type IRepository interface {
 	DeleteBook(id int) (string, error)
 
 	GetAllAuthors() ([]*types.AuthorDB, error)
+	GetAuthorById(id int) (*types.AuthorDB, error)
 	CreateAuthor(req types.CreateAuthorRequest) (int, error)
 	UpdateAuthor(id int, req types.UpdateAuthorRequest) error
 	DeleteAuthor(id int) error
 
-	GetGenres() ([]*types.GenreDB, error)
+	GetAllGenres() ([]*types.GenreDB, error)
 	CreateGenre(req types.CreateGenreRequest) (int, error)
 	UpdateGenre(id int, req types.UpdateGenreRequest) error
 	DeleteGenre(id int) error
@@ -289,7 +290,19 @@ func (repo *Repository) GetAllAuthors() ([]*types.AuthorDB, error) {
 	return authors, nil
 }
 
-func (repo *Repository) GetGenres() ([]*types.GenreDB, error) {
+func (repo *Repository) GetAuthorById(id int) (*types.AuthorDB, error) {
+	var res types.AuthorDB
+	err := repo.DB.QueryRow(`select id, name from authors where id = $1`, id).Scan(
+		&res.ID,
+		&res.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+func (repo *Repository) GetAllGenres() ([]*types.GenreDB, error) {
 	rows, err := repo.DB.Query(getAllGenresQuery)
 	if err != nil {
 		return nil, err

@@ -26,11 +26,12 @@ type IService interface {
 	DeleteBook(id int) (string, error)
 
 	GetAllAuthors() (*types.ListAuthorResponse, error)
+	GetAuthorById(id int) (*types.Author, error)
 	CreateAuthor(req types.CreateAuthorRequest) (*types.CreateAuthorResponse, error)
 	UpdateAuthor(id int, req types.UpdateAuthorRequest) error
 	DeleteAuthor(id int) error
 
-	GetGenres() (*types.ListGenreResponse, error)
+	GetAllGenres() (*types.ListGenreResponse, error)
 	CreateGenre(req types.CreateGenreRequest) (*types.CreateGenreResponse, error)
 	UpdateGenre(id int, req types.UpdateGenreRequest) error
 	DeleteGenre(id int) error
@@ -207,8 +208,20 @@ func (s *Service) GetAllAuthors() (*types.ListAuthorResponse, error) {
 	}, nil
 }
 
-func (s *Service) GetGenres() (*types.ListGenreResponse, error) {
-	genres, err := s.repo.GetGenres()
+func (s *Service) GetAuthorById(id int) (*types.Author, error) {
+	res, err := s.repo.GetAuthorById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.Author{
+		ID:   res.ID,
+		Name: res.Name,
+	}, nil
+}
+
+func (s *Service) GetAllGenres() (*types.ListGenreResponse, error) {
+	genres, err := s.repo.GetAllGenres()
 	if err != nil {
 		return nil, err
 	}

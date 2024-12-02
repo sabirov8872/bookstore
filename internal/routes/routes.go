@@ -34,6 +34,7 @@ func Run(hand handler.IHandler, port, secretKey string) {
 
 	router.HandleFunc("/authors", hand.GetAllAuthors).Methods(http.MethodGet)
 	router.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods(http.MethodPost)
+	router.HandleFunc("/authors/{id}", hand.GetAuthorById).Methods(http.MethodGet)
 	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods(http.MethodPut)
 	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods(http.MethodDelete)
 
