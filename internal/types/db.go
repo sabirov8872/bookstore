@@ -8,18 +8,18 @@ type UserDB struct {
 	Password string `db:"password"`
 	Email    string `db:"email"`
 	Phone    string `db:"phone"`
-	UserRole string `db:"userrole"`
+	Role     string `db:"role"`
 }
 
 type GetUserByUsernameDB struct {
 	ID       int    `db:"id"`
 	Password string `db:"password"`
-	UserRole string `db:"userrole"`
+	Role     string `db:"role"`
 }
 
 type BookDB struct {
 	ID          int       `db:"id"`
-	Name        string    `db:"name"`
+	Title       string    `db:"title"`
 	Author      AuthorDB  `db:"author"`
 	Genre       GenreDB   `db:"genre"`
 	ISBN        string    `db:"isbn"`

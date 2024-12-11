@@ -1,5 +1,5 @@
 SELECT b.id,
-       b.name,
+       b.title,
        a.id,
        a.name,
        g.id,

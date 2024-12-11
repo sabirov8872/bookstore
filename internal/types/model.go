@@ -8,7 +8,7 @@ type User struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
-	UserRole string `json:"userRole"`
+	Role     string `json:"role"`
 }
 
 type GetUserByUserResponse struct {
@@ -40,7 +40,7 @@ type UpdateUserByIdRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
-	UserRole string `json:"userRole"`
+	Role     string `json:"role"`
 }
 
 type ListUserResponse struct {
@@ -58,7 +58,7 @@ type ErrorResponse struct {
 
 type Book struct {
 	ID          int       `json:"id"`
-	Name        string    `json:"name"`
+	Title       string    `json:"title"`
 	Author      Author    `json:"author"`
 	Genre       Genre     `json:"genre"`
 	ISBN        string    `json:"isbn"`
@@ -76,7 +76,7 @@ type ListBookResponse struct {
 type CreateBookRequest struct {
 	AuthorId    int    `json:"authorId"`
 	GenreId     int    `json:"genreId"`
-	Name        string `json:"name"`
+	Title       string `json:"title"`
 	ISBN        string `json:"isbn"`
 	Description string `json:"description"`
 }
@@ -88,7 +88,7 @@ type CreateBookResponse struct {
 type UpdateBookRequest struct {
 	AuthorId    int    `json:"authorId"`
 	GenreId     int    `json:"genreId"`
-	Name        string `json:"name"`
+	Title       string `json:"title"`
 	ISBN        string `json:"isbn"`
 	Description string `json:"description"`
 }
@@ -135,4 +135,11 @@ type CreateGenreRequest struct {
 
 type UpdateGenreRequest struct {
 	Name string `json:"name"`
+}
+
+type GetAllBooksRequest struct {
+	Filter  string
+	ID      string
+	SortBy  string
+	OrderBy string
 }

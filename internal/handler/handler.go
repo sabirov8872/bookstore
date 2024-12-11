@@ -19,14 +19,11 @@ import (
 )
 
 const (
-	getAllUsers        = "getAllUsers"
-	getAllBooks        = "getAllBooks"
-	userID             = "userID"
-	bookID             = "bookID"
-	getAllAuthors      = "getAllAuthors"
-	getAllGenres       = "getAllGenres"
-	getBooksByAuthorId = "getBooksByAuthorId"
-	getBooksByGenreId  = "getBooksByGenreId"
+	getAllUsers   = "getAllUsers"
+	userID        = "userID"
+	bookID        = "bookID"
+	getAllAuthors = "getAllAuthors"
+	getAllGenres  = "getAllGenres"
 )
 
 type Handler struct {
@@ -150,7 +147,7 @@ func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := createToken(resp.ID, resp.UserRole, h.secretKey)
+	token, err := createToken(resp.ID, resp.Role, h.secretKey)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
@@ -419,36 +416,21 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // @Tags           books
 // @Accept         json
 // @Produce        json
+// @Param          filter query string false "author_id, genre_id"
+// @Param          id query int false "id"
+// @Param          sort_by query string false "title, created_at, updated_at"
+// @Param          order_by query string false "desc, asc"
 // @Success        200 {object} types.ListBookResponse
 // @Failure        500 {object} types.ErrorResponse
 // @Router         /books [get]
 func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
-	data, err := h.cache.Get(r.Context(), getAllBooks).Result()
-	if err == nil {
-		var resp types.ListBookResponse
-		err = json.Unmarshal([]byte(data), &resp)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-			return
-		}
+	var req types.GetAllBooksRequest
+	req.Filter = r.URL.Query().Get("filter")
+	req.ID = r.URL.Query().Get("id")
+	req.SortBy = r.URL.Query().Get("sort_by")
+	req.OrderBy = r.URL.Query().Get("order_by")
 
-		writeJSON(w, http.StatusOK, resp)
-		return
-	}
-
-	res, err := h.service.GetAllBooks()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	jsonData, err := json.Marshal(res)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Set(r.Context(), getAllBooks, string(jsonData), 30*time.Minute).Err()
+	res, err := h.service.GetAllBooks(req)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
@@ -538,24 +520,6 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.cache.Del(r.Context(), getAllBooks).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByAuthorId).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByGenreId).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
 	writeJSON(w, http.StatusOK, res)
 }
 
@@ -589,24 +553,6 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.service.UpdateBook(id, req)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getAllBooks).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByAuthorId).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByGenreId).Err()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
@@ -646,30 +592,12 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if filename != "no file" {
-		err = h.minioClient.DeleteBookFile(r.Context(), filename)
+	if filename != "" {
+		err = h.minioClient.DeleteFile(r.Context(), filename)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 			return
 		}
-	}
-
-	err = h.cache.Del(r.Context(), getAllBooks).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByAuthorId).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getBooksByGenreId).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
 	}
 
 	err = h.cache.Del(r.Context(), bookID+strconv.Itoa(id)).Err()
@@ -899,14 +827,14 @@ func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.minioClient.PutBookFile(r.Context(), fileHeader.Filename, file)
+	err = h.minioClient.PutFile(r.Context(), fileHeader.Filename, file)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	if oldFilename != "no file" {
-		err = h.minioClient.DeleteBookFile(r.Context(), oldFilename)
+		err = h.minioClient.DeleteFile(r.Context(), oldFilename)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 			return
@@ -939,7 +867,7 @@ func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := h.minioClient.GetBookFile(r.Context(), filename)
+	file, err := h.minioClient.GetFile(r.Context(), filename)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return

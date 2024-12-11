@@ -29,12 +29,6 @@ var (
 	//go:embed queries/get_all_books.sql
 	getAllBooksQuery string
 
-	//go:embed queries/get_books_by_author_id.sql
-	getBooksByAuthorIdQuery string
-
-	//go:embed queries/get_books_by_genre_id.sql
-	getBooksByGenreIdQuery string
-
 	//go:embed queries/get_book_by_id.sql
 	getBookByIdQuery string
 

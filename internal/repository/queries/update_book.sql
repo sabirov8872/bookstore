@@ -1,8 +1,9 @@
 update books
 set author_id = $1,
     genre_id = $2,
-    name = $3,
+    title = $3,
     isbn = $4,
     description = $5,
     updated_at = $6
-where id = $7
+WHERE id = $7
+

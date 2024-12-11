@@ -1,6 +1,6 @@
 insert into books (author_id,
                    genre_id,
-                   name,
+                   title,
                    isbn,
                    filename,
                    description,

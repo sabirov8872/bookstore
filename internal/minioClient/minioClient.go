@@ -20,6 +20,7 @@ func NewMinioClient(endpoint, accessKeyID, secretAccessKey, bucketName string) (
 	if err != nil {
 		return nil, err
 	}
+
 	return &MinioClient{
 		client:     minioClient,
 		bucketName: bucketName,
@@ -37,8 +38,8 @@ func (m *MinioClient) CreateBucket(location string) error {
 		ObjectLocking: false})
 }
 
-func (m *MinioClient) GetBookFile(ctx context.Context, bookFileName string) (*minio.Object, error) {
-	object, err := m.client.GetObject(ctx, m.bucketName, bookFileName, minio.GetObjectOptions{})
+func (m *MinioClient) GetFile(ctx context.Context, filename string) (*minio.Object, error) {
+	object, err := m.client.GetObject(ctx, m.bucketName, filename, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -46,12 +47,11 @@ func (m *MinioClient) GetBookFile(ctx context.Context, bookFileName string) (*mi
 	return object, nil
 }
 
-func (m *MinioClient) PutBookFile(ctx context.Context, bookFileName string, reader io.Reader) error {
-	_, err := m.client.PutObject(ctx, m.bucketName, bookFileName, reader, -1,
-		minio.PutObjectOptions{ContentType: "application/pdf"})
+func (m *MinioClient) PutFile(ctx context.Context, filename string, reader io.Reader) error {
+	_, err := m.client.PutObject(ctx, m.bucketName, filename, reader, -1, minio.PutObjectOptions{ContentType: "application/pdf"})
 	return err
 }
 
-func (m *MinioClient) DeleteBookFile(ctx context.Context, bookFileName string) error {
-	return m.client.RemoveObject(ctx, m.bucketName, bookFileName, minio.RemoveObjectOptions{})
+func (m *MinioClient) DeleteFile(ctx context.Context, filename string) error {
+	return m.client.RemoveObject(ctx, m.bucketName, filename, minio.RemoveObjectOptions{})
 }

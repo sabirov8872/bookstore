@@ -23,7 +23,7 @@ definitions:
         type: integer
       isbn:
         type: string
-      name:
+      title:
         type: string
       updatedAt:
         type: string
@@ -48,7 +48,7 @@ definitions:
         type: integer
       isbn:
         type: string
-      name:
+      title:
         type: string
     type: object
   types.CreateBookResponse:
@@ -159,7 +159,7 @@ definitions:
         type: integer
       isbn:
         type: string
-      name:
+      title:
         type: string
     type: object
   types.UpdateGenreRequest:
@@ -364,6 +364,23 @@ paths:
       consumes:
       - application/json
       description: For admins, users and guests
+      parameters:
+      - description: author_id, genre_id
+        in: query
+        name: filter
+        type: string
+      - description: id
+        in: query
+        name: id
+        type: integer
+      - description: title, created_at, updated_at
+        in: query
+        name: sort_by
+        type: string
+      - description: desc, asc
+        in: query
+        name: order_by
+        type: string
       produces:
       - application/json
       responses:

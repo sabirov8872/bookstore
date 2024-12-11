@@ -1,5 +1,5 @@
 SELECT books.id,
-       books.name,
+       books.title,
        authors.id,
        authors.name,
        genres.id,

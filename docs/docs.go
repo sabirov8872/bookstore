@@ -256,6 +256,32 @@ const docTemplate = `{
                     "books"
                 ],
                 "summary": "Get all books",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "author_id, genre_id",
+                        "name": "filter",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "title, created_at, updated_at",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "desc, asc",
+                        "name": "order_by",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1164,7 +1190,7 @@ const docTemplate = `{
                 "isbn": {
                     "type": "string"
                 },
-                "name": {
+                "title": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -1203,7 +1229,7 @@ const docTemplate = `{
                 "isbn": {
                     "type": "string"
                 },
-                "name": {
+                "title": {
                     "type": "string"
                 }
             }
@@ -1377,7 +1403,7 @@ const docTemplate = `{
                 "isbn": {
                     "type": "string"
                 },
-                "name": {
+                "title": {
                     "type": "string"
                 }
             }

@@ -19,7 +19,7 @@ type IService interface {
 	UpdateUserById(id int, userRole types.UpdateUserByIdRequest) error
 	DeleteUser(id int) error
 
-	GetAllBooks() (*types.ListBookResponse, error)
+	GetAllBooks(req types.GetAllBooksRequest) (*types.ListBookResponse, error)
 	GetBookById(id int) (*types.Book, error)
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
@@ -73,7 +73,7 @@ func (s *Service) GetAllUsers() (*types.ListUserResponse, error) {
 			Password: v.Password,
 			Email:    v.Email,
 			Phone:    v.Phone,
-			UserRole: v.UserRole,
+			Role:     v.Role,
 		}
 	}
 
@@ -95,7 +95,7 @@ func (s *Service) GetUserById(id int) (*types.User, error) {
 		Password: res.Password,
 		Email:    res.Email,
 		Phone:    res.Phone,
-		UserRole: res.UserRole,
+		Role:     res.Role,
 	}, nil
 }
 
@@ -111,8 +111,8 @@ func (s *Service) DeleteUser(id int) error {
 	return s.repo.DeleteUser(id)
 }
 
-func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
-	res, err := s.repo.GetAllBooks()
+func (s *Service) GetAllBooks(req types.GetAllBooksRequest) (*types.ListBookResponse, error) {
+	res, err := s.repo.GetAllBooks(req)
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +120,8 @@ func (s *Service) GetAllBooks() (*types.ListBookResponse, error) {
 	resp := make([]*types.Book, len(res))
 	for i, v := range res {
 		resp[i] = &types.Book{
-			ID:   v.ID,
-			Name: v.Name,
+			ID:    v.ID,
+			Title: v.Title,
 			Author: types.Author{
 				ID:   v.Author.ID,
 				Name: v.Author.Name,
@@ -151,8 +151,8 @@ func (s *Service) GetBookById(id int) (*types.Book, error) {
 	}
 
 	return &types.Book{
-		ID:   res.ID,
-		Name: res.Name,
+		ID:    res.ID,
+		Title: res.Title,
 		Author: types.Author{
 			ID:   res.Author.ID,
 			Name: res.Author.Name,
