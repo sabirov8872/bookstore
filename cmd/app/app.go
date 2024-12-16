@@ -7,7 +7,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
-	"github.com/sabirov8872/bookstore/internal/config"
+	"github.com/sabirov8872/bookstore/config"
 	"github.com/sabirov8872/bookstore/internal/handler"
 	"github.com/sabirov8872/bookstore/internal/minioClient"
 	"github.com/sabirov8872/bookstore/internal/repository"

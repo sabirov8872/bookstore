@@ -41,8 +41,6 @@ type IRepository interface {
 
 	GetFilename(id int) (string, error)
 	UpdateFilename(id int, filename string) (string, error)
-
-	//GetSearchResults(req)
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -441,6 +439,7 @@ func (repo *Repository) UpdateGenre(id int, req types.UpdateGenreRequest) error 
 	if err != nil {
 		return errors.New("bad request")
 	}
+
 	return nil
 }
 

@@ -56,6 +56,16 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+type Author struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type Genre struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type Book struct {
 	ID          int       `json:"id"`
 	Title       string    `json:"title"`
@@ -93,19 +103,9 @@ type UpdateBookRequest struct {
 	Description string `json:"description"`
 }
 
-type Author struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
 type ListAuthorResponse struct {
 	AuthorsCount int       `json:"authorsCount"`
 	Items        []*Author `json:"items"`
-}
-
-type Genre struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
 }
 
 type ListGenreResponse struct {
@@ -121,12 +121,12 @@ type CreateAuthorResponse struct {
 	ID int `json:"authorId"`
 }
 
-type UpdateAuthorRequest struct {
-	Name string `json:"name"`
-}
-
 type CreateGenreResponse struct {
 	ID int `json:"genreId"`
+}
+
+type UpdateAuthorRequest struct {
+	Name string `json:"name"`
 }
 
 type CreateGenreRequest struct {

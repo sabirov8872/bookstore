@@ -430,7 +430,7 @@ func TestRepository_GetAllBooks(t *testing.T) {
 	require.Equal(t, id, 1)
 
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(`select created_at,updated_at from books where id = 1`).Scan(&createdAt, &updatedAt)
+	err = db.QueryRow(`select created_at, updated_at from books where id = 1`).Scan(&createdAt, &updatedAt)
 	require.NoError(t, err)
 
 	id, err = repo.CreateBook(types.CreateBookRequest{
@@ -442,7 +442,7 @@ func TestRepository_GetAllBooks(t *testing.T) {
 	require.Equal(t, id, 2)
 
 	var createdAt2, updatedAt2 time.Time
-	err = db.QueryRow(`select created_at,updated_at from books where id = 2`).Scan(&createdAt2, &updatedAt2)
+	err = db.QueryRow(`select created_at, updated_at from books where id = 2`).Scan(&createdAt2, &updatedAt2)
 	require.NoError(t, err)
 
 	tests := map[string]struct {

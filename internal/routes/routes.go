@@ -12,44 +12,40 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sabirov8872/bookstore/internal/handler"
 	"github.com/sabirov8872/bookstore/internal/types"
-
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func Run(hand handler.IHandler, port, secretKey string) {
-	router := mux.NewRouter()
-	router.HandleFunc("/sign-up", hand.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/sign-in", hand.GetUserByUsername).Methods(http.MethodPost)
+	r := mux.NewRouter()
+	r.HandleFunc("/sign-up", hand.CreateUser).Methods("POST")
+	r.HandleFunc("/sign-in", hand.GetUserByUsername).Methods("POST")
 
-	router.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.GetUserById)).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.UpdateUserById)).Methods(http.MethodPut)
-	router.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods(http.MethodDelete)
-	router.HandleFunc("/users", UserAuth(secretKey, hand.UpdateUser)).Methods(http.MethodPut)
+	r.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods("GET")
+	r.HandleFunc("/users", UserAuth(secretKey, hand.UpdateUser)).Methods("PUT")
+	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.GetUserById)).Methods("GET")
+	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.UpdateUserById)).Methods("PUT")
+	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods("DELETE")
 
-	router.HandleFunc("/books", hand.GetAllBooks).Methods(http.MethodGet)
-	router.HandleFunc("/books/{id}", hand.GetBookById).Methods(http.MethodGet)
-	router.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods(http.MethodPost)
-	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods(http.MethodPut)
-	router.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods(http.MethodDelete)
+	r.HandleFunc("/books", hand.GetAllBooks).Methods("GET")
+	r.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods("POST")
+	r.HandleFunc("/books/{id}", hand.GetBookById).Methods("GET")
+	r.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods("PUT")
+	r.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods("DELETE")
 
-	router.HandleFunc("/authors", hand.GetAllAuthors).Methods(http.MethodGet)
-	router.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods(http.MethodPost)
-	router.HandleFunc("/authors/{id}", hand.GetAuthorById).Methods(http.MethodGet)
-	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods(http.MethodPut)
-	router.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods(http.MethodDelete)
+	r.HandleFunc("/authors", hand.GetAllAuthors).Methods("GET")
+	r.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods("POST")
+	r.HandleFunc("/authors/{id}", hand.GetAuthorById).Methods("GET")
+	r.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods("PUT")
+	r.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods("DELETE")
 
-	router.HandleFunc("/genres", hand.GetAllGenres).Methods(http.MethodGet)
-	router.HandleFunc("/genres", AdminAuth(secretKey, hand.CreateGenre)).Methods(http.MethodPost)
-	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods(http.MethodPut)
-	router.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods(http.MethodDelete)
+	r.HandleFunc("/genres", hand.GetAllGenres).Methods("GET")
+	r.HandleFunc("/genres", AdminAuth(secretKey, hand.CreateGenre)).Methods("POST")
+	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods("PUT")
+	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods("DELETE")
 
-	router.HandleFunc("/files/{id}", hand.GetBookFile).Methods(http.MethodGet)
-	router.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadBookFile)).Methods(http.MethodPost)
+	r.HandleFunc("/files/{id}", hand.GetBookFile).Methods("GET")
+	r.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadBookFile)).Methods("POST")
 
-	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
-
-	log.Fatal(http.ListenAndServe("localhost:"+port, router))
+	log.Fatal(http.ListenAndServe("localhost:"+port, r))
 }
 
 func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {

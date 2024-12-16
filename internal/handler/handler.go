@@ -74,18 +74,6 @@ func NewHandler(service service.IService, secretKey string,
 	}
 }
 
-// CreateUser
-//
-// @Summary        Registration
-// @Description    For users
-// @Tags           auth
-// @Accept         json
-// @Produce        json
-// @Param          input body types.CreateUserRequest true "User data"
-// @Success        200 {object} types.CreateUserResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /sign-up [post]
 func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateUserRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -115,18 +103,6 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// GetUserByUsername
-//
-// @Summary		   User verification
-// @Description    For users and admins
-// @Tags           auth
-// @Accept         json
-// @Produce        json
-// @Param          input body types.GetUserByUserRequest true "User data"
-// @Success        200 {object} types.GetUserByUserResponse
-// @Failure		   400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /sign-in [post]
 func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	var req types.GetUserByUserRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -158,18 +134,6 @@ func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 		Token:  token})
 }
 
-// GetAllUsers
-//
-// @Summary        Get all users
-// @Description    For admins
-// @Tags           users
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Success        200 {object} types.ListUserResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /users [get]
 func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	data, err := h.cache.Get(r.Context(), getAllUsers).Result()
 	if err == nil {
@@ -205,20 +169,46 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// GetUserById
-//
-// @Summary        Get user by id
-// @Description    For admins
-// @Tags           users
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "User id"
-// @Success        200 {object} types.User
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /users/{id} [get]
+func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	var req types.UpdateUserRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	req.Password, err = hashingPassword(req.Password)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	authHeader := r.Header.Get("Authorization")
+	id, err := getUserIdFromToken(authHeader, h.secretKey)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	err = h.service.UpdateUser(id, req)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	err = h.cache.Del(r.Context(), getAllUsers).Err()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	err = h.cache.Del(r.Context(), userID+strconv.Itoa(id)).Err()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+}
+
 func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -260,75 +250,6 @@ func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// UpdateUser
-//
-// @Summary        Update user
-// @Description    For users and admins
-// @Tags           users
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          input body types.UpdateUserRequest true "User data"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /users [put]
-func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var req types.UpdateUserRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	req.Password, err = hashingPassword(req.Password)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	authHeader := r.Header.Get("Authorization")
-	id, err := getUserIdFromToken(authHeader, h.secretKey)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.service.UpdateUser(id, req)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), getAllUsers).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	err = h.cache.Del(r.Context(), userID+strconv.Itoa(id)).Err()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-}
-
-// UpdateUserById
-//
-// @Summary        Update user by id
-// @Description    For admins
-// @Tags           users
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "User ID"
-// @Param          input body types.UpdateUserByIdRequest true "User data"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /users/{id} [put]
 func (h *Handler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateUserByIdRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -368,21 +289,6 @@ func (h *Handler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteUser
-//
-// @Summary        Delete user by id
-// @Description    For admins
-// @Tags           users
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "User ID"
-// @Success        200
-// @Success        204
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /users/{id} [delete]
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -409,20 +315,6 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetAllBooks
-//
-// @Summary        Get all books
-// @Description    For admins, users and guests
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Param          filter query string false "author_id, genre_id"
-// @Param          id query int false "id"
-// @Param          sort_by query string false "title, created_at, updated_at"
-// @Param          order_by query string false "desc, asc"
-// @Success        200 {object} types.ListBookResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /books [get]
 func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	var req types.GetAllBooksRequest
 	req.Filter = r.URL.Query().Get("filter")
@@ -439,18 +331,23 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// GetBookById
-//
-// @Summary        Get book by id
-// @Description    For admins, users and guests
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Param          id path int true "Book id"
-// @Success        200 {object} types.Book
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /books/{id} [get]
+func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
+	var req types.CreateBookRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	res, err := h.service.CreateBook(req)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, res)
+}
+
 func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -492,52 +389,6 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// CreateBook
-//
-// @Summary        Create a new book
-// @Description    For admins
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          input body types.CreateBookRequest true "Book data"
-// @Success        200 {object} types.CreateBookResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /books [post]
-func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
-	var req types.CreateBookRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	res, err := h.service.CreateBook(req)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, res)
-}
-
-// UpdateBook
-//
-// @Summary        Update book by id
-// @Description    For admins
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Book ID"
-// @Param          input body types.UpdateBookRequest true "Book data"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /books/{id} [put]
 func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateBookRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -565,20 +416,6 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteBook
-//
-// @Summary        Delete book by id
-// @Description    For admins
-// @Tags           books
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Book id"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /books/{id} [delete]
 func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -607,16 +444,6 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetAllAuthors
-//
-// @Summary        Get all authors
-// @Description    For admins, users and guests
-// @Tags           authors
-// @Accept         json
-// @Produce        json
-// @Success        200 {object} types.ListAuthorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors [get]
 func (h *Handler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
 	data, err := h.cache.Get(r.Context(), getAllAuthors).Result()
 	if err == nil {
@@ -652,47 +479,6 @@ func (h *Handler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, listAuthors)
 }
 
-// GetAuthorById
-//
-// @Summary        Get author by id
-// @Description    For admins, users and guests
-// @Tags           authors
-// @Accept         json
-// @Produce        json
-// @Success        200 {object} types.Author
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors/{id} [get]
-func (h *Handler) GetAuthorById(w http.ResponseWriter, r *http.Request) {
-	id, err := getID(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
-		return
-	}
-
-	res, err := h.service.GetAuthorById(id)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, res)
-}
-
-// CreateAuthor
-//
-// @Summary        Create a new author
-// @Description    For admins
-// @Tags           authors
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          input body types.CreateAuthorRequest true "Author data"
-// @Success        200 {object} types.CreateAuthorResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors [post]
 func (h *Handler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateAuthorRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -716,21 +502,22 @@ func (h *Handler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// UpdateAuthor
-//
-// @Summary        Update author by id
-// @Description    For admins
-// @Tags           authors
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Author ID"
-// @Param          input body types.UpdateAuthorRequest true "Author data"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors/{id} [put]
+func (h *Handler) GetAuthorById(w http.ResponseWriter, r *http.Request) {
+	id, err := getID(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid user id"})
+		return
+	}
+
+	res, err := h.service.GetAuthorById(id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, res)
+}
+
 func (h *Handler) UpdateAuthor(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateAuthorRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -758,20 +545,6 @@ func (h *Handler) UpdateAuthor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteAuthor
-//
-// @Summary        Delete author by id
-// @Description    For admins
-// @Tags           authors
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Author ID"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /authors/{id} [delete]
 func (h *Handler) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -792,21 +565,6 @@ func (h *Handler) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UploadBookFile
-//
-// @Summary       Upload book file by book id
-// @Description   For admins
-// @Tags          files
-// @Accept        multipart/form-data
-// @Produce       json
-// @Security      ApiKeyAuth
-// @Param         id path int true "Book id"
-// @Param         file formData file true "Book pdf file"
-// @Success       200
-// @Failure       400 {object} types.ErrorResponse
-// @Failure       401 {object} types.ErrorResponse
-// @Failure       500 {object} types.ErrorResponse
-// @Router        /files/{id} [post]
 func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -842,18 +600,6 @@ func (h *Handler) UploadBookFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetBookFile
-//
-// @Summary           Get book file by book id
-// @Description       For admins, users and guests
-// @Tags              files
-// @Accept            json
-// @Produce           application/pdf
-// @Param id          path int true "Book id"
-// @Success           200 {file} file "Book file"
-// @Failure           400 {object} types.ErrorResponse
-// @Failure           500 {object} types.ErrorResponse
-// @Router            /files/{id} [get]
 func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
@@ -878,16 +624,6 @@ func (h *Handler) GetBookFile(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filename, time.Now(), file)
 }
 
-// GetAllGenres
-//
-// @Summary        Get all genres
-// @Description    For admins, users and guests
-// @Tags           genres
-// @Accept         json
-// @Produce        json
-// @Success        200 {object} types.ListGenreResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /genres [get]
 func (h *Handler) GetAllGenres(w http.ResponseWriter, r *http.Request) {
 	data, err := h.cache.Get(r.Context(), getAllGenres).Result()
 	if err == nil {
@@ -923,20 +659,6 @@ func (h *Handler) GetAllGenres(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, listGenres)
 }
 
-// CreateGenre
-//
-// @Summary        Create a new genre
-// @Description    For admins
-// @Tags           genres
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          input body types.CreateGenreRequest true "Genre data"
-// @Success        200 {object} types.CreateGenreResponse
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /genres [post]
 func (h *Handler) CreateGenre(w http.ResponseWriter, r *http.Request) {
 	var req types.CreateGenreRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -960,21 +682,6 @@ func (h *Handler) CreateGenre(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// UpdateGenre
-//
-// @Summary        Update genre by id
-// @Description    For admins
-// @Tags           genres
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Genre ID"
-// @Param          input body types.UpdateGenreRequest true "Genre data"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /genres/{id} [put]
 func (h *Handler) UpdateGenre(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateGenreRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -1002,20 +709,6 @@ func (h *Handler) UpdateGenre(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteGenre
-//
-// @Summary        Delete genre by id
-// @Description    For admins
-// @Tags           genres
-// @Accept         json
-// @Produce        json
-// @Security       ApiKeyAuth
-// @Param          id path int true "Genre ID"
-// @Success        200
-// @Failure        400 {object} types.ErrorResponse
-// @Failure        401 {object} types.ErrorResponse
-// @Failure        500 {object} types.ErrorResponse
-// @Router         /genres/{id} [delete]
 func (h *Handler) DeleteGenre(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {

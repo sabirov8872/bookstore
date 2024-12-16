@@ -1,16 +1,28 @@
-basePath: /
+swagger: "2.0"
+info:
+  title: Bookstore
+  description: Bookstore
+  version: 1.0.0
+host: localhost:8080
+schemes:
+  - 'http'
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 definitions:
-  types.Author:
+  Author:
     properties:
       id:
         type: integer
       name:
         type: string
     type: object
-  types.Book:
+  Book:
     properties:
       author:
-        $ref: '#/definitions/types.Author'
+        $ref: '#/definitions/Author'
       createdAt:
         type: string
       description:
@@ -18,7 +30,7 @@ definitions:
       filename:
         type: string
       genre:
-        $ref: '#/definitions/types.Genre'
+        $ref: '#/definitions/Genre'
       id:
         type: integer
       isbn:
@@ -28,17 +40,17 @@ definitions:
       updatedAt:
         type: string
     type: object
-  types.CreateAuthorRequest:
+  CreateAuthorRequest:
     properties:
       name:
         type: string
     type: object
-  types.CreateAuthorResponse:
+  CreateAuthorResponse:
     properties:
       authorId:
         type: integer
     type: object
-  types.CreateBookRequest:
+  CreateBookRequest:
     properties:
       authorId:
         type: integer
@@ -51,22 +63,22 @@ definitions:
       title:
         type: string
     type: object
-  types.CreateBookResponse:
+  CreateBookResponse:
     properties:
       bookId:
         type: integer
     type: object
-  types.CreateGenreRequest:
+  CreateGenreRequest:
     properties:
       name:
         type: string
     type: object
-  types.CreateGenreResponse:
+  CreateGenreResponse:
     properties:
       genreId:
         type: integer
     type: object
-  types.CreateUserRequest:
+  CreateUserRequest:
     properties:
       email:
         type: string
@@ -77,79 +89,79 @@ definitions:
       username:
         type: string
     type: object
-  types.CreateUserResponse:
+  CreateUserResponse:
     properties:
       userId:
         type: integer
     type: object
-  types.ErrorResponse:
+  ErrorResponse:
     properties:
       message:
         type: string
     type: object
-  types.Genre:
+  Genre:
     properties:
       id:
         type: integer
       name:
         type: string
     type: object
-  types.GetUserByUserRequest:
+  GetUserByUserRequest:
     properties:
       password:
         type: string
       username:
         type: string
     type: object
-  types.GetUserByUserResponse:
+  GetUserByUserResponse:
     properties:
       token:
         type: string
       userId:
         type: integer
     type: object
-  types.ListAuthorResponse:
+  ListAuthorResponse:
     properties:
       authorsCount:
         type: integer
       items:
         items:
-          $ref: '#/definitions/types.Author'
+          $ref: '#/definitions/Author'
         type: array
     type: object
-  types.ListBookResponse:
+  ListBookResponse:
     properties:
       booksCount:
         type: integer
       items:
         items:
-          $ref: '#/definitions/types.Book'
+          $ref: '#/definitions/Book'
         type: array
     type: object
-  types.ListGenreResponse:
+  ListGenreResponse:
     properties:
       genresCount:
         type: integer
       items:
         items:
-          $ref: '#/definitions/types.Genre'
+          $ref: '#/definitions/Genre'
         type: array
     type: object
-  types.ListUserResponse:
+  ListUserResponse:
     properties:
       items:
         items:
-          $ref: '#/definitions/types.User'
+          $ref: '#/definitions/User'
         type: array
       usersCount:
         type: integer
     type: object
-  types.UpdateAuthorRequest:
+  UpdateAuthorRequest:
     properties:
       name:
         type: string
     type: object
-  types.UpdateBookRequest:
+  UpdateBookRequest:
     properties:
       authorId:
         type: integer
@@ -162,12 +174,12 @@ definitions:
       title:
         type: string
     type: object
-  types.UpdateGenreRequest:
+  UpdateGenreRequest:
     properties:
       name:
         type: string
     type: object
-  types.UpdateUserByIdRequest:
+  UpdateUserByIdRequest:
     properties:
       email:
         type: string
@@ -180,7 +192,7 @@ definitions:
       username:
         type: string
     type: object
-  types.UpdateUserRequest:
+  UpdateUserRequest:
     properties:
       email:
         type: string
@@ -191,7 +203,7 @@ definitions:
       username:
         type: string
     type: object
-  types.User:
+  User:
     properties:
       email:
         type: string
@@ -206,342 +218,346 @@ definitions:
       username:
         type: string
     type: object
-host: localhost:8080
-info:
-  contact: {}
-  title: Bookstore
-  version: "1.0"
 paths:
   /authors:
     get:
-      consumes:
-      - application/json
+      tags:
+        - 'authors'
+      summary: Get all authors
       description: For admins, users and guests
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.ListAuthorResponse'
+            $ref: '#/definitions/ListAuthorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get all authors
-      tags:
-      - authors
+            $ref: '#/definitions/ErrorResponse'
     post:
-      consumes:
-      - application/json
+      tags:
+        - 'authors'
+      summary: Create a new author
       description: For admins
-      parameters:
-      - description: Author data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateAuthorRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - in: body
+          name: input
+          description: Author data
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAuthorRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.CreateAuthorResponse'
+            $ref: '#/definitions/CreateAuthorResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Create a new author
-      tags:
-      - authors
+        - ApiKeyAuth: []
   /authors/{id}:
     delete:
-      consumes:
-      - application/json
-      description: For admins
-      parameters:
-      - description: Author ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
+      tags:
+        - 'authors'
       summary: Delete author by id
-      tags:
-      - authors
-    get:
-      consumes:
-      - application/json
-      description: For admins, users and guests
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.Author'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get author by id
-      tags:
-      - authors
-    put:
-      consumes:
-      - application/json
       description: For admins
-      parameters:
-      - description: Author ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Author data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateAuthorRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - in: path
+          name: id
+          description: Author ID
+          required: true
+          type: integer
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Update author by id
+        - ApiKeyAuth: []
+    get:
       tags:
-      - authors
+        - 'authors'
+      summary: Get author by id
+      description: For admins, users and guests
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: path
+          name: id
+          description: Author ID
+          required: true
+          type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Author'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      tags:
+        - 'authors'
+      summary: Update author by id
+      description: For admins
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - description: Author ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: Author data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateAuthorRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
   /books:
     get:
-      consumes:
-      - application/json
+      tags:
+        - 'books'
+      summary: Get all books
       description: For admins, users and guests
-      parameters:
-      - description: author_id, genre_id
-        in: query
-        name: filter
-        type: string
-      - description: id
-        in: query
-        name: id
-        type: integer
-      - description: title, created_at, updated_at
-        in: query
-        name: sort_by
-        type: string
-      - description: desc, asc
-        in: query
-        name: order_by
-        type: string
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: author_id, genre_id
+          in: query
+          name: filter
+          type: string
+        - description: id
+          in: query
+          name: id
+          type: integer
+        - description: title, created_at, updated_at
+          in: query
+          name: sort_by
+          type: string
+        - description: desc, asc
+          in: query
+          name: order_by
+          type: string
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.ListBookResponse'
+            $ref: '#/definitions/ListBookResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get all books
-      tags:
-      - books
+            $ref: '#/definitions/ErrorResponse'
     post:
-      consumes:
-      - application/json
+      tags:
+        - 'books'
+      summary: Create a new book
       description: For admins
-      parameters:
-      - description: Book data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateBookRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: Book data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/CreateBookRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.CreateBookResponse'
+            $ref: '#/definitions/CreateBookResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Create a new book
-      tags:
-      - books
+        - ApiKeyAuth: []
   /books/{id}:
     delete:
-      consumes:
-      - application/json
-      description: For admins
-      parameters:
-      - description: Book id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
+      tags:
+        - 'books'
       summary: Delete book by id
-      tags:
-      - books
-    get:
-      consumes:
-      - application/json
-      description: For admins, users and guests
-      parameters:
-      - description: Book id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.Book'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get book by id
-      tags:
-      - books
-    put:
-      consumes:
-      - application/json
       description: For admins
-      parameters:
-      - description: Book ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Book data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateBookRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: Book id
+          in: path
+          name: id
+          required: true
+          type: integer
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Update book by id
+        - ApiKeyAuth: []
+    get:
       tags:
-      - books
+        - 'books'
+      summary: Get book by id
+      description: For admins, users and guests
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - description: Book id
+          in: path
+          name: id
+          required: true
+          type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Book'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      tags:
+        - 'books'
+      summary: Update book by id
+      description: For admins
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - description: Book ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: Book data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateBookRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
   /files/{id}:
     get:
-      consumes:
-      - application/json
+      tags:
+        - 'files'
+      summary: Get book file by book id
       description: For admins, users and guests
-      parameters:
-      - description: Book id
-        in: path
-        name: id
-        required: true
-        type: integer
+      consumes:
+        - 'application/json'
       produces:
-      - application/pdf
+        - 'application/pdf'
+      parameters:
+        - description: Book id
+          in: path
+          name: id
+          required: true
+          type: integer
       responses:
         "200":
           description: Book file
@@ -550,307 +566,307 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get book file by book id
-      tags:
-      - files
+            $ref: '#/definitions/ErrorResponse'
     post:
-      consumes:
-      - multipart/form-data
+      tags:
+        - 'files'
+      summary: Upload book file by book id
       description: For admins
-      parameters:
-      - description: Book id
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Book pdf file
-        in: formData
-        name: file
-        required: true
-        type: file
+      consumes:
+        - 'multipart/form-data'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: Book id
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: Book pdf file
+          in: formData
+          name: file
+          required: true
+          type: file
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Upload book file by book id
-      tags:
-      - files
+        - ApiKeyAuth: []
   /genres:
     get:
-      consumes:
-      - application/json
+      tags:
+        - 'genres'
+      summary: Get all genres
       description: For admins, users and guests
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.ListGenreResponse'
+            $ref: '#/definitions/ListGenreResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Get all genres
-      tags:
-      - genres
+            $ref: '#/definitions/ErrorResponse'
     post:
-      consumes:
-      - application/json
+      tags:
+        - 'genres'
+      summary: Create a new genre
       description: For admins
-      parameters:
-      - description: Genre data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateGenreRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: Genre data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/CreateGenreRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.CreateGenreResponse'
+            $ref: '#/definitions/CreateGenreResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Create a new genre
-      tags:
-      - genres
+        - ApiKeyAuth: []
   /genres/{id}:
     delete:
-      consumes:
-      - application/json
-      description: For admins
-      parameters:
-      - description: Genre ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
+      tags:
+        - 'genres'
       summary: Delete genre by id
-      tags:
-      - genres
-    put:
-      consumes:
-      - application/json
       description: For admins
-      parameters:
-      - description: Genre ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Genre data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateGenreRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: Genre ID
+          in: path
+          name: id
+          required: true
+          type: integer
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Update genre by id
+        - ApiKeyAuth: []
+    put:
       tags:
-      - genres
+        - 'genres'
+      summary: Update genre by id
+      description: For admins
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - description: Genre ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: Genre data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateGenreRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
   /sign-in:
     post:
-      consumes:
-      - application/json
+      tags:
+        - 'auth'
+      summary: User verification
       description: For users and admins
-      parameters:
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.GetUserByUserRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: User data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/GetUserByUserRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.GetUserByUserResponse'
+            $ref: '#/definitions/GetUserByUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: User verification
-      tags:
-      - auth
+            $ref: '#/definitions/ErrorResponse'
   /sign-up:
     post:
-      consumes:
-      - application/json
+      tags:
+        - 'auth'
+      summary: Registration
       description: For users
-      parameters:
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.CreateUserRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - description: User data
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/CreateUserRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.CreateUserResponse'
+            $ref: '#/definitions/CreateUserResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Registration
-      tags:
-      - auth
+            $ref: '#/definitions/ErrorResponse'
   /users:
     get:
-      consumes:
-      - application/json
+      tags:
+        - 'users'
+      summary: Get all users
       description: For admins
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.ListUserResponse'
-        "401":
+            $ref: '#/definitions/ListUserResponse'
+        "400":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Get all users
-      tags:
-      - users
+        - ApiKeyAuth: []
     put:
-      consumes:
-      - application/json
+      tags:
+        - 'users'
+      summary: Update user
       description: For users and admins
-      parameters:
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateUserRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - in: body
+          description: User data
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateUserRequest'
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Update user
-      tags:
-      - users
+        - ApiKeyAuth: []
   /users/{id}:
     delete:
-      consumes:
-      - application/json
+      tags:
+        - 'users'
+      summary: Delete user by id
       description: For admins
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - in: path
+          description: User ID
+          name: id
+          required: true
+          type: integer
       responses:
         "200":
           description: OK
@@ -859,95 +875,86 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Delete user by id
-      tags:
-      - users
+        - ApiKeyAuth: []
     get:
-      consumes:
-      - application/json
-      description: For admins
-      parameters:
-      - description: User id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/types.User'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
+      tags:
+        - 'users'
       summary: Get user by id
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
       description: For admins
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: User data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/types.UpdateUserByIdRequest'
+      consumes:
+        - 'application/json'
       produces:
-      - application/json
+        - 'application/json'
+      parameters:
+        - in: path
+          description: User id
+          name: id
+          required: true
+          type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
+    put:
+      tags:
+        - 'users'
+      summary: Update user by id
+      description: For admins
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: path
+          description: User ID
+          name: id
+          required: true
+          type: integer
+        - in: body
+          description: User data
+          name: input
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateUserByIdRequest'
       responses:
         "200":
           description: OK
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/types.ErrorResponse'
+            $ref: '#/definitions/ErrorResponse'
       security:
-      - ApiKeyAuth: []
-      summary: Update user by id
-      tags:
-      - users
-securityDefinitions:
-  ApiKeyAuth:
-    in: header
-    name: Authorization
-    type: apiKey
-swagger: "2.0"
+        - ApiKeyAuth: []
