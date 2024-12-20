@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"github.com/minio/minio-go/v7"
+	"mime/multipart"
+	"time"
+)
 
 type User struct {
 	ID       int    `json:"id"`
@@ -142,4 +146,15 @@ type GetAllBooksRequest struct {
 	ID      string
 	SortBy  string
 	OrderBy string
+}
+
+type UploadFileByBookIdRequest struct {
+	ID         int
+	FileHeader *multipart.FileHeader
+	File       multipart.File
+}
+
+type GetFileByBookIdResponse struct {
+	Filename string
+	File     *minio.Object
 }

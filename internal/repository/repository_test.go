@@ -881,7 +881,7 @@ func TestRepository_DeleteBook(t *testing.T) {
 	}
 }
 
-func TestRepository_UpdateFilename(t *testing.T) {
+func TestRepository_UploadFileByBookId(t *testing.T) {
 	container := newTestContainer(t)
 	defer container.terminate(t)
 	db := container.getDB(t)
@@ -925,14 +925,14 @@ func TestRepository_UpdateFilename(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			oldFilename, err := repo.UpdateFilename(tt.id, tt.filename)
+			oldFilename, err := repo.UploadFileByBookId(tt.id, tt.filename)
 			require.Equal(t, tt.err, err)
 			require.Equal(t, tt.oldFilename, oldFilename)
 		})
 	}
 }
 
-func TestRepository_GetFilename(t *testing.T) {
+func TestRepository_GetFileByBookId(t *testing.T) {
 	container := newTestContainer(t)
 	defer container.terminate(t)
 	db := container.getDB(t)
@@ -973,7 +973,7 @@ func TestRepository_GetFilename(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			filename, err := repo.GetFilename(tt.id)
+			filename, err := repo.GetFileByBookId(tt.id)
 			require.Equal(t, tt.err, err)
 			require.Equal(t, tt.filename, filename)
 		})

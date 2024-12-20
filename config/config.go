@@ -3,46 +3,35 @@ package config
 import (
 	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/sabirov8872/bookstore/pkg/minio"
+	"github.com/sabirov8872/bookstore/pkg/postgres"
+	"github.com/sabirov8872/bookstore/pkg/redis"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	SecretKey            string
-	ServerPort           string
-	DBHost               string
-	DBPort               string
-	DBUser               string
-	DBPassword           string
-	DBName               string
-	DBSSLMode            string
-	MinioEndpoint        string
-	MinioAccessKeyID     string
-	MinioSecretAccessKey string
-	MinioBucketName      string
-	MinioLocation        string
-	RedisAddress         string
+	Server struct {
+		Port int `yaml:"port"`
+	} `yaml:"server"`
+	Secret struct {
+		Key string `yaml:"key"`
+	} `yaml:"secret"`
+	Postgres postgres.Config `yaml:"postgres"`
+	Minio    minio.Config    `yaml:"minio"`
+	Redis    redis.Config    `yaml:"redis"`
 }
 
-func GetConfig() (*Config, error) {
-	err := godotenv.Load()
+func Load() (*Config, error) {
+	var c Config
+	file, err := os.ReadFile("config/config.yaml")
 	if err != nil {
 		return nil, err
 	}
 
-	return &Config{
-		SecretKey:            os.Getenv("SECRET_KEY"),
-		ServerPort:           os.Getenv("SERVER_PORT"),
-		DBHost:               os.Getenv("DB_HOST"),
-		DBPort:               os.Getenv("DB_PORT"),
-		DBUser:               os.Getenv("DB_USER"),
-		DBPassword:           os.Getenv("DB_PASSWORD"),
-		DBName:               os.Getenv("DB_NAME"),
-		DBSSLMode:            os.Getenv("DB_SSL_MODE"),
-		MinioEndpoint:        os.Getenv("MINIO_ENDPOINT"),
-		MinioAccessKeyID:     os.Getenv("MINIO_ACCESS_KEY_ID"),
-		MinioSecretAccessKey: os.Getenv("MINIO_SECRET_ACCESS_KEY"),
-		MinioBucketName:      os.Getenv("MINIO_BUCKET"),
-		MinioLocation:        os.Getenv("MINIO_LOCATION"),
-		RedisAddress:         os.Getenv("REDIS_ADDRESS"),
-	}, nil
+	err = yaml.Unmarshal(file, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
 }

@@ -1,21 +1,44 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sabirov8872/bookstore/internal/repository"
 	"github.com/sabirov8872/bookstore/internal/types"
+	"github.com/sabirov8872/bookstore/pkg/minio"
+	"github.com/sabirov8872/bookstore/pkg/redis"
+	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	allUsers   = "allUsers"
+	userID     = "userID"
+	bookID     = "bookId"
+	allAuthors = "allAuthors"
+	authorID   = "authorID"
+	allGenres  = "allGenres"
 )
 
 type Service struct {
-	repo repository.IRepository
+	repo      repository.IRepository
+	redis     redis.IClient
+	minio     minio.IClient
+	secretKey string
 }
 
 type IService interface {
 	CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error)
-	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
+	GetUserByUsername(req types.GetUserByUserRequest) (*types.GetUserByUserResponse, error)
 
 	GetAllUsers() (*types.ListUserResponse, error)
 	GetUserById(id int) (*types.User, error)
-	UpdateUser(id int, req types.UpdateUserRequest) error
+	UpdateUser(req types.UpdateUserRequest, authHeader string) error
 	UpdateUserById(id int, userRole types.UpdateUserByIdRequest) error
 	DeleteUser(id int) error
 
@@ -23,7 +46,7 @@ type IService interface {
 	GetBookById(id int) (*types.Book, error)
 	CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error)
 	UpdateBook(id int, req types.UpdateBookRequest) error
-	DeleteBook(id int) (string, error)
+	DeleteBook(id int) error
 
 	GetAllAuthors() (*types.ListAuthorResponse, error)
 	GetAuthorById(id int) (*types.Author, error)
@@ -36,16 +59,32 @@ type IService interface {
 	UpdateGenre(id int, req types.UpdateGenreRequest) error
 	DeleteGenre(id int) error
 
-	UpdateFilename(id int, filename string) (string, error)
-	GetFilename(id int) (string, error)
+	UploadFileByBookId(req types.UploadFileByBookIdRequest) error
+	GetFileByBookId(id int) (res *types.GetFileByBookIdResponse, err error)
 }
 
-func NewService(repo repository.IRepository) *Service {
-	return &Service{repo: repo}
+func NewService(repo repository.IRepository, redis redis.IClient, minio minio.IClient, secretKey string) *Service {
+	return &Service{
+		repo:      repo,
+		redis:     redis,
+		minio:     minio,
+		secretKey: secretKey,
+	}
 }
 
 func (s *Service) CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error) {
+	var err error
+	req.Password, err = hashingPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	id, err := s.repo.CreateUser(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allUsers})
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +94,39 @@ func (s *Service) CreateUser(req types.CreateUserRequest) (*types.CreateUserResp
 	}, nil
 }
 
-func (s *Service) GetUserByUsername(username string) (*types.GetUserByUsernameDB, error) {
-	return s.repo.GetUserByUsername(username)
+func (s *Service) GetUserByUsername(req types.GetUserByUserRequest) (*types.GetUserByUserResponse, error) {
+	res, err := s.repo.GetUserByUsername(req.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(res.Password), []byte(req.Password))
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := createToken(res.ID, res.Role, s.secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.GetUserByUserResponse{
+		UserID: res.ID,
+		Token:  token,
+	}, nil
 }
 
 func (s *Service) GetAllUsers() (*types.ListUserResponse, error) {
+	if data, err := s.redis.Get(context.Background(), allUsers); err == nil {
+		res := &types.ListUserResponse{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
 	res, err := s.repo.GetAllUsers()
 	if err != nil {
 		return nil, err
@@ -77,38 +144,106 @@ func (s *Service) GetAllUsers() (*types.ListUserResponse, error) {
 		}
 	}
 
-	return &types.ListUserResponse{
+	data := &types.ListUserResponse{
 		UsersCount: len(resp),
 		Items:      resp,
-	}, nil
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(context.Background(), allUsers, jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (s *Service) GetUserById(id int) (*types.User, error) {
+	if data, err := s.redis.Get(context.Background(), userID+strconv.Itoa(id)); err == nil {
+		res := &types.User{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
 	res, err := s.repo.GetUserByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.User{
+	data := &types.User{
 		ID:       res.ID,
 		Username: res.Username,
 		Password: res.Password,
 		Email:    res.Email,
 		Phone:    res.Phone,
 		Role:     res.Role,
-	}, nil
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(context.Background(), userID+strconv.Itoa(id), jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
-func (s *Service) UpdateUser(id int, req types.UpdateUserRequest) error {
-	return s.repo.UpdateUser(id, req)
+func (s *Service) UpdateUser(req types.UpdateUserRequest, authHeader string) error {
+	id, err := getUserIdFromToken(authHeader, s.secretKey)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateUser(id, req)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allUsers, userID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) UpdateUserById(id int, req types.UpdateUserByIdRequest) error {
-	return s.repo.UpdateUserById(id, req)
+	err := s.repo.UpdateUserById(id, req)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allUsers, userID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) DeleteUser(id int) error {
-	return s.repo.DeleteUser(id)
+	err := s.repo.DeleteUser(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allUsers, userID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) GetAllBooks(req types.GetAllBooksRequest) (*types.ListBookResponse, error) {
@@ -145,12 +280,22 @@ func (s *Service) GetAllBooks(req types.GetAllBooksRequest) (*types.ListBookResp
 }
 
 func (s *Service) GetBookById(id int) (*types.Book, error) {
+	if data, err := s.redis.Get(context.Background(), bookID+strconv.Itoa(id)); err == nil {
+		res := &types.Book{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
 	res, err := s.repo.GetBookByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.Book{
+	resp := &types.Book{
 		ID:    res.ID,
 		Title: res.Title,
 		Author: types.Author{
@@ -166,7 +311,19 @@ func (s *Service) GetBookById(id int) (*types.Book, error) {
 		Description: res.Description,
 		CreatedAt:   res.CreatedAt,
 		UpdatedAt:   res.UpdatedAt,
-	}, nil
+	}
+
+	jsonData, err := json.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(context.Background(), bookID+strconv.Itoa(id), jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (s *Service) CreateBook(req types.CreateBookRequest) (*types.CreateBookResponse, error) {
@@ -181,14 +338,49 @@ func (s *Service) CreateBook(req types.CreateBookRequest) (*types.CreateBookResp
 }
 
 func (s *Service) UpdateBook(id int, req types.UpdateBookRequest) error {
-	return s.repo.UpdateBook(id, req)
+	err := s.repo.UpdateBook(id, req)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{bookID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *Service) DeleteBook(id int) (string, error) {
-	return s.repo.DeleteBook(id)
+func (s *Service) DeleteBook(id int) error {
+	filename, err := s.repo.DeleteBook(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.minio.DeleteFile(context.Background(), filename)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{bookID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) GetAllAuthors() (*types.ListAuthorResponse, error) {
+	if data, err := s.redis.Get(context.Background(), allAuthors); err == nil {
+		res := &types.ListAuthorResponse{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
 	authors, err := s.repo.GetAllAuthors()
 	if err != nil {
 		return nil, err
@@ -202,25 +394,151 @@ func (s *Service) GetAllAuthors() (*types.ListAuthorResponse, error) {
 		}
 	}
 
-	return &types.ListAuthorResponse{
+	data := &types.ListAuthorResponse{
 		AuthorsCount: len(resp),
 		Items:        resp,
-	}, nil
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(context.Background(), allAuthors, jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (s *Service) GetAuthorById(id int) (*types.Author, error) {
+	if data, err := s.redis.Get(context.Background(), authorID+strconv.Itoa(id)); err == nil {
+		res := &types.Author{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
 	res, err := s.repo.GetAuthorById(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.Author{
+	data := &types.Author{
 		ID:   res.ID,
 		Name: res.Name,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(context.Background(), authorID+strconv.Itoa(id), jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (s *Service) CreateAuthor(req types.CreateAuthorRequest) (*types.CreateAuthorResponse, error) {
+	id, err := s.repo.CreateAuthor(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allAuthors})
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.CreateAuthorResponse{
+		ID: id,
+	}, nil
+}
+
+func (s *Service) UpdateAuthor(id int, req types.UpdateAuthorRequest) error {
+	err := s.repo.UpdateAuthor(id, req)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allAuthors, authorID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteAuthor(id int) error {
+	err := s.repo.DeleteAuthor(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allAuthors, authorID + strconv.Itoa(id)})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) UploadFileByBookId(req types.UploadFileByBookIdRequest) error {
+	oldFilename, err := s.repo.UploadFileByBookId(req.ID, req.FileHeader.Filename)
+	if err != nil {
+		return err
+	}
+
+	if oldFilename != "" {
+		err = s.minio.DeleteFile(context.Background(), oldFilename)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.minio.PutFile(context.Background(), req.FileHeader.Filename, req.File)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) GetFileByBookId(id int) (res *types.GetFileByBookIdResponse, err error) {
+	filename, err := s.repo.GetFileByBookId(id)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := s.minio.GetFile(context.Background(), filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.GetFileByBookIdResponse{
+		Filename: filename,
+		File:     file,
 	}, nil
 }
 
 func (s *Service) GetAllGenres() (*types.ListGenreResponse, error) {
+	if data, err := s.redis.Get(context.Background(), allGenres); err == nil {
+		res := &types.ListGenreResponse{}
+		err = json.Unmarshal([]byte(data), res)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
 	genres, err := s.repo.GetAllGenres()
 	if err != nil {
 		return nil, err
@@ -234,41 +552,31 @@ func (s *Service) GetAllGenres() (*types.ListGenreResponse, error) {
 		}
 	}
 
-	return &types.ListGenreResponse{
+	data := &types.ListGenreResponse{
 		GenresCount: len(resp),
 		Items:       resp,
-	}, nil
-}
+	}
 
-func (s *Service) UpdateFilename(id int, filename string) (string, error) {
-	return s.repo.UpdateFilename(id, filename)
-}
-
-func (s *Service) GetFilename(id int) (string, error) {
-	return s.repo.GetFilename(id)
-}
-
-func (s *Service) CreateAuthor(req types.CreateAuthorRequest) (*types.CreateAuthorResponse, error) {
-	id, err := s.repo.CreateAuthor(req)
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.CreateAuthorResponse{
-		ID: id,
-	}, nil
-}
+	err = s.redis.Set(context.Background(), allGenres, jsonData, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
 
-func (s *Service) UpdateAuthor(id int, req types.UpdateAuthorRequest) error {
-	return s.repo.UpdateAuthor(id, req)
-}
-
-func (s *Service) DeleteAuthor(id int) error {
-	return s.repo.DeleteAuthor(id)
+	return data, nil
 }
 
 func (s *Service) CreateGenre(req types.CreateGenreRequest) (*types.CreateGenreResponse, error) {
 	res, err := s.repo.CreateGenre(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allGenres})
 	if err != nil {
 		return nil, err
 	}
@@ -279,9 +587,71 @@ func (s *Service) CreateGenre(req types.CreateGenreRequest) (*types.CreateGenreR
 }
 
 func (s *Service) UpdateGenre(id int, req types.UpdateGenreRequest) error {
-	return s.repo.UpdateGenre(id, req)
+	err := s.repo.UpdateGenre(id, req)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allGenres})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) DeleteGenre(id int) error {
-	return s.repo.DeleteGenre(id)
+	err := s.repo.DeleteGenre(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.redis.Del(context.Background(), []string{allGenres})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createToken(id int, userRole, secretKey string) (string, error) {
+	claims := &jwt.MapClaims{
+		"id":   id,
+		"role": userRole,
+		"exp":  time.Now().Add(time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(secretKey))
+}
+
+func hashingPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
+}
+
+func getUserIdFromToken(authHeader, secretKey string) (int, error) {
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		authHeader = authHeader[len("Bearer "):]
+	}
+
+	token, _ := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, errors.New("invalid claims")
+	}
+
+	userId, ok := claims["id"].(float64)
+	if !ok {
+		return 0, errors.New("invalid user id")
+	}
+
+	return int(userId), nil
 }

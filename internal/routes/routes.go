@@ -14,10 +14,10 @@ import (
 	"github.com/sabirov8872/bookstore/internal/types"
 )
 
-func Run(hand handler.IHandler, port, secretKey string) {
+func Run(hand handler.IHandler, port int, secretKey string) {
 	r := mux.NewRouter()
-	r.HandleFunc("/sign-up", hand.CreateUser).Methods("POST")
-	r.HandleFunc("/sign-in", hand.GetUserByUsername).Methods("POST")
+	r.HandleFunc("/signup", hand.CreateUser).Methods("POST")
+	r.HandleFunc("/login", hand.GetUserByUsername).Methods("POST")
 
 	r.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods("GET")
 	r.HandleFunc("/users", UserAuth(secretKey, hand.UpdateUser)).Methods("PUT")
@@ -42,10 +42,10 @@ func Run(hand handler.IHandler, port, secretKey string) {
 	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods("PUT")
 	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods("DELETE")
 
-	r.HandleFunc("/files/{id}", hand.GetBookFile).Methods("GET")
-	r.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadBookFile)).Methods("POST")
+	r.HandleFunc("/files/{id}", hand.GetFileByBookId).Methods("GET")
+	r.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadFileByBookId)).Methods("POST")
 
-	log.Fatal(http.ListenAndServe("localhost:"+port, r))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", port), r))
 }
 
 func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {

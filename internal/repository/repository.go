@@ -39,8 +39,8 @@ type IRepository interface {
 	UpdateGenre(id int, req types.UpdateGenreRequest) error
 	DeleteGenre(id int) error
 
-	GetFilename(id int) (string, error)
-	UpdateFilename(id int, filename string) (string, error)
+	GetFileByBookId(id int) (string, error)
+	UploadFileByBookId(id int, filename string) (string, error)
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -293,7 +293,7 @@ func (repo *Repository) DeleteBook(id int) (string, error) {
 	return filename, nil
 }
 
-func (repo *Repository) UpdateFilename(id int, filename string) (string, error) {
+func (repo *Repository) UploadFileByBookId(id int, filename string) (string, error) {
 	var oldFilename string
 	err := repo.DB.QueryRow(getFilenameQuery, id).Scan(&oldFilename)
 	if err != nil {
@@ -308,7 +308,7 @@ func (repo *Repository) UpdateFilename(id int, filename string) (string, error) 
 	return oldFilename, nil
 }
 
-func (repo *Repository) GetFilename(id int) (string, error) {
+func (repo *Repository) GetFileByBookId(id int) (string, error) {
 	var filename string
 	err := repo.DB.QueryRow(getFilenameQuery, id).Scan(&filename)
 	if err != nil {

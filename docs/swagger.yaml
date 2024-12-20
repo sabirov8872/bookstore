@@ -733,7 +733,7 @@ paths:
             $ref: '#/definitions/ErrorResponse'
       security:
         - ApiKeyAuth: []
-  /sign-in:
+  /login:
     post:
       tags:
         - 'auth'
@@ -763,7 +763,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-  /sign-up:
+  /signup:
     post:
       tags:
         - 'auth'

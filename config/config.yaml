@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+secret:
+  key: qwerty
+
+postgres:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: postgres
+  sslmode: disable
+
+minio:
+  host: localhost
+  port: 9000
+  user: rootuser
+  password: rootpassword
+  bucket: bookstore
+  location: us-east-1
+
+redis:
+  host: localhost
+  port: 6379
