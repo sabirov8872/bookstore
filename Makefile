@@ -1,11 +1,14 @@
 run:
 	go run main.go
 
-up:
+mg-up:
 	migrate -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" -path migrations up
 
-down:
+mg-down:
 	migrate -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" -path migrations down
+
+mg-install:
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 test:
 	go test ./...
