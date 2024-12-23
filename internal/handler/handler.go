@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,8 +13,7 @@ import (
 )
 
 type Handler struct {
-	service   service.IService
-	secretKey string
+	service service.IService
 }
 
 type IHandler interface {
@@ -48,10 +47,9 @@ type IHandler interface {
 	GetFileByBookId(w http.ResponseWriter, r *http.Request)
 }
 
-func NewHandler(service service.IService, secretKey string) *Handler {
+func NewHandler(service service.IService) *Handler {
 	return &Handler{
-		service:   service,
-		secretKey: secretKey,
+		service: service,
 	}
 }
 
@@ -444,6 +442,6 @@ func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }

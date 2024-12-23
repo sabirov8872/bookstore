@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/sabirov8872/bookstore/config"
@@ -34,9 +35,10 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("START")
 
 	repo := repository.NewRepository(db)
 	serv := service.NewService(repo, rc, mc, cfg.Secret.Key)
-	hand := handler.NewHandler(serv, cfg.Secret.Key)
+	hand := handler.NewHandler(serv)
 	routes.Run(hand, cfg.Server.Port, cfg.Secret.Key)
 }

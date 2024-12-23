@@ -9,3 +9,6 @@ down:
 
 test:
 	go test ./...
+
+dc-up:
+	docker compose up -d
