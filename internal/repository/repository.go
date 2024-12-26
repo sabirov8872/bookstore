@@ -63,7 +63,7 @@ func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
 
 	var id int
 	err = repo.DB.QueryRow(createUserQuery,
-		1,
+		2,
 		req.Username,
 		password,
 		req.Email,
