@@ -1,9 +1,10 @@
 package types
 
 import (
-	"github.com/minio/minio-go/v7"
 	"mime/multipart"
 	"time"
+
+	"github.com/minio/minio-go/v7"
 )
 
 type User struct {
@@ -15,14 +16,14 @@ type User struct {
 	Role     string `json:"role"`
 }
 
-type GetUserByUserResponse struct {
-	UserID int    `json:"userId"`
-	Token  string `json:"token"`
-}
-
-type GetUserByUserRequest struct {
+type GetSessionIdByUsernameRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type GetSessionIdByUsernameResponse struct {
+	UserId    int    `json:"userId"`
+	SessionId string `json:"sessionId"`
 }
 
 type CreateUserRequest struct {
@@ -30,6 +31,10 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
+}
+
+type CreateUserResponse struct {
+	ID int `json:"userId"`
 }
 
 type UpdateUserRequest struct {
@@ -44,16 +49,12 @@ type UpdateUserByIdRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
-	Role     string `json:"role"`
+	RoleId   int    `json:"roleId"`
 }
 
 type ListUserResponse struct {
 	UsersCount int     `json:"usersCount"`
 	Items      []*User `json:"items"`
-}
-
-type CreateUserResponse struct {
-	ID int `json:"userId"`
 }
 
 type ErrorResponse struct {
@@ -122,7 +123,7 @@ type CreateAuthorRequest struct {
 }
 
 type CreateAuthorResponse struct {
-	ID int `json:"authorId"`
+	AuthorId int `json:"authorId"`
 }
 
 type CreateGenreResponse struct {

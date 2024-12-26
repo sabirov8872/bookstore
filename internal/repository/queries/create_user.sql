@@ -1,7 +1,7 @@
-INSERT INTO users (username,
+INSERT INTO users (role_id,
+                   username,
                    password,
                    email,
-                   phone,
-                   role)
+                   phone)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id

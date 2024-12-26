@@ -13,9 +13,6 @@ type Config struct {
 	Server struct {
 		Port int `yaml:"port"`
 	} `yaml:"server"`
-	Secret struct {
-		Key string `yaml:"key"`
-	} `yaml:"secret"`
 	Postgres postgres.Config `yaml:"postgres"`
 	Minio    minio.Config    `yaml:"minio"`
 	Redis    redis.Config    `yaml:"redis"`

@@ -18,24 +18,25 @@ type Handler struct {
 
 type IHandler interface {
 	CreateUser(w http.ResponseWriter, r *http.Request)
-	GetUserByUsername(w http.ResponseWriter, r *http.Request)
+	GetSessionIdByUsername(w http.ResponseWriter, r *http.Request)
+	DeleteSessionId(w http.ResponseWriter, r *http.Request)
 
 	GetAllUsers(w http.ResponseWriter, r *http.Request)
 	GetUserById(w http.ResponseWriter, r *http.Request)
-	UpdateUser(w http.ResponseWriter, r *http.Request)
+	UpdateUserBySessionId(w http.ResponseWriter, r *http.Request)
 	UpdateUserById(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 
 	GetAllBooks(w http.ResponseWriter, r *http.Request)
 	GetBookById(w http.ResponseWriter, r *http.Request)
 	CreateBook(w http.ResponseWriter, r *http.Request)
-	UpdateBook(w http.ResponseWriter, r *http.Request)
-	DeleteBook(w http.ResponseWriter, r *http.Request)
+	UpdateBookById(w http.ResponseWriter, r *http.Request)
+	DeleteBookById(w http.ResponseWriter, r *http.Request)
 
 	GetAllAuthors(w http.ResponseWriter, r *http.Request)
 	GetAuthorById(w http.ResponseWriter, r *http.Request)
 	CreateAuthor(w http.ResponseWriter, r *http.Request)
-	UpdateAuthor(w http.ResponseWriter, r *http.Request)
+	UpdateAuthorById(w http.ResponseWriter, r *http.Request)
 	DeleteAuthor(w http.ResponseWriter, r *http.Request)
 
 	GetAllGenres(w http.ResponseWriter, r *http.Request)
@@ -70,21 +71,40 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
-	var req types.GetUserByUserRequest
+func (h *Handler) GetSessionIdByUsername(w http.ResponseWriter, r *http.Request) {
+	var req types.GetSessionIdByUsernameRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	resp, err := h.service.GetUserByUsername(req)
+	res, err := h.service.GetSessionIdByUsername(req)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid username"})
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "invalid username"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	cookie := &http.Cookie{
+		Name:     "sessionId",
+		Value:    res.SessionId,
+		HttpOnly: true,
+		Secure:   false,
+		Path:     "/",
+	}
+
+	http.SetCookie(w, cookie)
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (h *Handler) DeleteSessionId(w http.ResponseWriter, r *http.Request) {
+	cookie, _ := r.Cookie("sessionId")
+
+	err := h.service.DeleteSessionId(cookie.Value)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "invalid sessionId"})
+		return
+	}
 }
 
 func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +117,7 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateUserBySessionId(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateUserRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -105,9 +125,9 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
+	cookie, _ := r.Cookie("sessionId")
 
-	err = h.service.UpdateUser(req, authHeader)
+	err = h.service.UpdateUserBySessionId(req, cookie.Value)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
@@ -214,7 +234,7 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateBookById(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateBookRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -235,7 +255,7 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteBookById(w http.ResponseWriter, r *http.Request) {
 	id, err := getID(r)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
@@ -250,13 +270,13 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
-	listAuthors, err := h.service.GetAllAuthors()
+	res, err := h.service.GetAllAuthors()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, listAuthors)
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (h *Handler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +312,7 @@ func (h *Handler) GetAuthorById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-func (h *Handler) UpdateAuthor(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateAuthorById(w http.ResponseWriter, r *http.Request) {
 	var req types.UpdateAuthorRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -325,46 +345,6 @@ func (h *Handler) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
 		return
 	}
-}
-
-func (h *Handler) UploadFileByBookId(w http.ResponseWriter, r *http.Request) {
-	var req types.UploadFileByBookIdRequest
-	var err error
-	req.ID, err = getID(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid book id"})
-		return
-	}
-
-	req.File, req.FileHeader, err = r.FormFile("file")
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-	defer req.File.Close()
-
-	err = h.service.UploadFileByBookId(req)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-}
-
-func (h *Handler) GetFileByBookId(w http.ResponseWriter, r *http.Request) {
-	id, err := getID(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid book id"})
-		return
-	}
-
-	req, err := h.service.GetFileByBookId(id)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	w.Header().Set("Content-Disposition", "attachment; filename="+req.Filename)
-	http.ServeContent(w, r, req.Filename, time.Now(), req.File)
 }
 
 func (h *Handler) GetAllGenres(w http.ResponseWriter, r *http.Request) {
@@ -429,6 +409,49 @@ func (h *Handler) DeleteGenre(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) UploadFileByBookId(w http.ResponseWriter, r *http.Request) {
+	var err error
+	id, err := getID(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid book id"})
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+	defer file.Close()
+
+	err = h.service.UploadFileByBookId(types.UploadFileByBookIdRequest{
+		ID:         id,
+		File:       file,
+		FileHeader: fileHeader,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+}
+
+func (h *Handler) GetFileByBookId(w http.ResponseWriter, r *http.Request) {
+	id, err := getID(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, types.ErrorResponse{Message: "invalid book id"})
+		return
+	}
+
+	req, err := h.service.GetFileByBookId(id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename="+req.Filename)
+	http.ServeContent(w, r, req.Filename, time.Now(), req.File)
+}
+
 func getID(r *http.Request) (int, error) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -440,7 +463,7 @@ func getID(r *http.Request) (int, error) {
 
 func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Println(err)

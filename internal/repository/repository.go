@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sabirov8872/bookstore/internal/types"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Repository struct {
@@ -15,10 +17,12 @@ type Repository struct {
 
 type IRepository interface {
 	CreateUser(req types.CreateUserRequest) (int, error)
-	GetUserByUsername(username string) (*types.GetUserByUsernameDB, error)
+	GetSessionIdByUsername(req types.GetSessionIdByUsernameRequest) (*types.GetSessionIdByUsernameResponse, error)
+	DeleteSessionId(sessionId string) error
+
 	GetAllUsers() (resp []*types.UserDB, err error)
 	GetUserByID(id int) (*types.UserDB, error)
-	UpdateUser(id int, req types.UpdateUserRequest) error
+	UpdateUserBySessionId(req types.UpdateUserRequest, sessionId string) (int, error)
 	UpdateUserById(id int, req types.UpdateUserByIdRequest) error
 	DeleteUser(id int) error
 
@@ -41,6 +45,8 @@ type IRepository interface {
 
 	GetFileByBookId(id int) (string, error)
 	UploadFileByBookId(id int, filename string) (string, error)
+
+	GetUserRoleBySessionId(sessionId string) (int, error)
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -50,13 +56,18 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
+	password, err := hashingPassword(req.Password)
+	if err != nil {
+		return 0, err
+	}
+
 	var id int
-	err := repo.DB.QueryRow(createUserQuery,
+	err = repo.DB.QueryRow(createUserQuery,
+		1,
 		req.Username,
-		req.Password,
+		password,
 		req.Email,
-		req.Phone,
-		"user").
+		req.Phone).
 		Scan(&id)
 	if err != nil {
 		return 0, errors.New("bad request")
@@ -65,17 +76,42 @@ func (repo *Repository) CreateUser(req types.CreateUserRequest) (int, error) {
 	return id, nil
 }
 
-func (repo *Repository) GetUserByUsername(username string) (*types.GetUserByUsernameDB, error) {
-	var resp types.GetUserByUsernameDB
-	err := repo.DB.QueryRow(getUserByUsernameQuery, username).Scan(
-		&resp.ID,
-		&resp.Password,
-		&resp.Role)
+func (repo *Repository) GetSessionIdByUsername(req types.GetSessionIdByUsernameRequest) (*types.GetSessionIdByUsernameResponse, error) {
+	var id int
+	var password, role string
+	err := repo.DB.QueryRow(getSessionIdByUsernameQuery, req.Username).Scan(
+		&id,
+		&password,
+		&role)
 	if err != nil {
 		return nil, err
 	}
 
-	return &resp, nil
+	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(req.Password))
+	if err != nil {
+		return nil, err
+	}
+
+	sessionId := uuid.New().String()
+
+	_, err = repo.DB.Query(`update users set session_id = $1 where id = $2`, sessionId, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.GetSessionIdByUsernameResponse{
+		UserId:    id,
+		SessionId: sessionId,
+	}, nil
+}
+
+func (repo *Repository) DeleteSessionId(sessionId string) error {
+	_, err := repo.DB.Query(`update users set session_id = $1 where session_id = $2`, "", sessionId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *Repository) GetAllUsers() (resp []*types.UserDB, err error) {
@@ -89,11 +125,11 @@ func (repo *Repository) GetAllUsers() (resp []*types.UserDB, err error) {
 		var u types.UserDB
 		err = rows.Scan(
 			&u.ID,
+			&u.Role,
 			&u.Username,
 			&u.Password,
 			&u.Email,
-			&u.Phone,
-			&u.Role)
+			&u.Phone)
 		if err != nil {
 			return nil, err
 		}
@@ -120,27 +156,44 @@ func (repo *Repository) GetUserByID(id int) (*types.UserDB, error) {
 	return &resp, nil
 }
 
-func (repo *Repository) UpdateUser(id int, req types.UpdateUserRequest) error {
-	_, err := repo.DB.Query(updateUserQuery,
-		req.Username,
-		req.Password,
-		req.Email,
-		req.Phone,
-		id)
+func (repo *Repository) UpdateUserBySessionId(req types.UpdateUserRequest, sessionId string) (int, error) {
+	password, err := hashingPassword(req.Password)
 	if err != nil {
-		return errors.New("bad request")
+		return 0, err
 	}
 
-	return err
+	var id int
+	err = repo.DB.QueryRow(`select id from users where session_id = $1`, sessionId).Scan(&id)
+	if err != nil {
+		return 0, errors.New("bad request")
+	}
+
+	_, err = repo.DB.Query(updateUserBySessionIdQuery,
+		req.Username,
+		password,
+		req.Email,
+		req.Phone,
+		"",
+		id)
+	if err != nil {
+		return 0, errors.New("bad request")
+	}
+
+	return id, nil
 }
 
 func (repo *Repository) UpdateUserById(id int, req types.UpdateUserByIdRequest) error {
-	_, err := repo.DB.Query(updateUserByIdQuery,
+	password, err := hashingPassword(req.Password)
+	if err != nil {
+		return err
+	}
+
+	_, err = repo.DB.Query(updateUserByIdQuery,
 		req.Username,
-		req.Password,
+		password,
 		req.Email,
 		req.Phone,
-		req.Role,
+		req.RoleId,
 		id)
 	if err != nil {
 		return errors.New("bad request")
@@ -474,4 +527,23 @@ func (repo *Repository) DeleteGenre(id int) error {
 	}
 
 	return errors.New("cannot delete genre")
+}
+
+func (repo *Repository) GetUserRoleBySessionId(sessionId string) (int, error) {
+	var roleId int
+	err := repo.DB.QueryRow(`select role_id from users where session_id = $1`, sessionId).Scan(&roleId)
+	if err != nil {
+		return 0, err
+	}
+
+	return roleId, nil
+}
+
+func hashingPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }

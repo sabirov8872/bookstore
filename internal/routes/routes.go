@@ -6,71 +6,60 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/sabirov8872/bookstore/internal/handler"
+	"github.com/sabirov8872/bookstore/internal/repository"
 	"github.com/sabirov8872/bookstore/internal/types"
 )
 
-func Run(hand handler.IHandler, port int, secretKey string) {
+func Run(hand handler.IHandler, port int, repo repository.IRepository) {
 	r := mux.NewRouter()
 	r.HandleFunc("/signup", hand.CreateUser).Methods("POST")
-	r.HandleFunc("/login", hand.GetUserByUsername).Methods("POST")
+	r.HandleFunc("/login", hand.GetSessionIdByUsername).Methods("POST")
+	r.HandleFunc("/logout", hand.DeleteSessionId).Methods("POST")
 
-	r.HandleFunc("/users", AdminAuth(secretKey, hand.GetAllUsers)).Methods("GET")
-	r.HandleFunc("/users", UserAuth(secretKey, hand.UpdateUser)).Methods("PUT")
-	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.GetUserById)).Methods("GET")
-	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.UpdateUserById)).Methods("PUT")
-	r.HandleFunc("/users/{id}", AdminAuth(secretKey, hand.DeleteUser)).Methods("DELETE")
+	r.HandleFunc("/users", AdminAuth(repo, hand.GetAllUsers)).Methods("GET")
+	r.HandleFunc("/users", UserAuth(repo, hand.UpdateUserBySessionId)).Methods("PUT")
+	r.HandleFunc("/users/{id}", AdminAuth(repo, hand.GetUserById)).Methods("GET")
+	r.HandleFunc("/users/{id}", AdminAuth(repo, hand.UpdateUserById)).Methods("PUT")
+	r.HandleFunc("/users/{id}", AdminAuth(repo, hand.DeleteUser)).Methods("DELETE")
 
 	r.HandleFunc("/books", hand.GetAllBooks).Methods("GET")
-	r.HandleFunc("/books", AdminAuth(secretKey, hand.CreateBook)).Methods("POST")
+	r.HandleFunc("/books", AdminAuth(repo, hand.CreateBook)).Methods("POST")
 	r.HandleFunc("/books/{id}", hand.GetBookById).Methods("GET")
-	r.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.UpdateBook)).Methods("PUT")
-	r.HandleFunc("/books/{id}", AdminAuth(secretKey, hand.DeleteBook)).Methods("DELETE")
+	r.HandleFunc("/books/{id}", AdminAuth(repo, hand.UpdateBookById)).Methods("PUT")
+	r.HandleFunc("/books/{id}", AdminAuth(repo, hand.DeleteBookById)).Methods("DELETE")
 
 	r.HandleFunc("/authors", hand.GetAllAuthors).Methods("GET")
-	r.HandleFunc("/authors", AdminAuth(secretKey, hand.CreateAuthor)).Methods("POST")
+	r.HandleFunc("/authors", AdminAuth(repo, hand.CreateAuthor)).Methods("POST")
 	r.HandleFunc("/authors/{id}", hand.GetAuthorById).Methods("GET")
-	r.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.UpdateAuthor)).Methods("PUT")
-	r.HandleFunc("/authors/{id}", AdminAuth(secretKey, hand.DeleteAuthor)).Methods("DELETE")
+	r.HandleFunc("/authors/{id}", AdminAuth(repo, hand.UpdateAuthorById)).Methods("PUT")
+	r.HandleFunc("/authors/{id}", AdminAuth(repo, hand.DeleteAuthor)).Methods("DELETE")
 
 	r.HandleFunc("/genres", hand.GetAllGenres).Methods("GET")
-	r.HandleFunc("/genres", AdminAuth(secretKey, hand.CreateGenre)).Methods("POST")
-	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.UpdateGenre)).Methods("PUT")
-	r.HandleFunc("/genres/{id}", AdminAuth(secretKey, hand.DeleteGenre)).Methods("DELETE")
+	r.HandleFunc("/genres", AdminAuth(repo, hand.CreateGenre)).Methods("POST")
+	r.HandleFunc("/genres/{id}", AdminAuth(repo, hand.UpdateGenre)).Methods("PUT")
+	r.HandleFunc("/genres/{id}", AdminAuth(repo, hand.DeleteGenre)).Methods("DELETE")
 
 	r.HandleFunc("/files/{id}", hand.GetFileByBookId).Methods("GET")
-	r.HandleFunc("/files/{id}", AdminAuth(secretKey, hand.UploadFileByBookId)).Methods("POST")
+	r.HandleFunc("/files/{id}", AdminAuth(repo, hand.UploadFileByBookId)).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", port), r))
+	cors := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Cookie"}),
+		handlers.AllowCredentials(),
+	)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", port), cors(r)))
 }
 
-func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func UserAuth(repo repository.IRepository, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		token, err := validateToken(authHeader, secretKey)
+		err := checkRole(r, repo, []int{1, 2})
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading token"})
-			return
-		}
-
-		role, ok := claims["role"].(string)
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading role"})
-			return
-		}
-
-		if role != "admin" && role != "user" {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "invalid role"})
 			return
 		}
 
@@ -78,29 +67,11 @@ func UserAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func AdminAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
+func AdminAuth(repo repository.IRepository, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		token, err := validateToken(authHeader, secretKey)
+		err := checkRole(r, repo, []int{2})
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading token"})
-			return
-		}
-
-		role, ok := claims["role"].(string)
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "error reading role"})
-			return
-		}
-
-		if role != "admin" {
-			writeJSON(w, http.StatusUnauthorized, types.ErrorResponse{Message: "invalid role"})
 			return
 		}
 
@@ -108,30 +79,24 @@ func AdminAuth(secretKey string, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func validateToken(authHeader, secretKey string) (*jwt.Token, error) {
-	if authHeader == "" {
-		return nil, errors.New("empty authorization header")
-	}
-
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		authHeader = authHeader[len("Bearer "):]
-	}
-
-	token, err := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
+func checkRole(r *http.Request, repo repository.IRepository, roleIds []int) error {
+	cookie, err := r.Cookie("sessionId")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if !token.Valid {
-		return nil, errors.New("invalid token")
+	resRoleId, err := repo.GetUserRoleBySessionId(cookie.Value)
+	if err != nil {
+		return err
 	}
 
-	return token, nil
+	for _, roleId := range roleIds {
+		if roleId == resRoleId {
+			return nil
+		}
+	}
+
+	return errors.New("unknown role")
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, data any) {

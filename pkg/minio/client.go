@@ -62,7 +62,8 @@ func (m *Client) GetFile(ctx context.Context, filename string) (*minio.Object, e
 }
 
 func (m *Client) PutFile(ctx context.Context, filename string, reader io.Reader) error {
-	_, err := m.client.PutObject(ctx, m.bucketName, filename, reader, -1, minio.PutObjectOptions{ContentType: "application/pdf"})
+	_, err := m.client.PutObject(ctx, m.bucketName, filename, reader, -1, minio.PutObjectOptions{
+		ContentType: "application/octet-stream"})
 	return err
 }
 

@@ -69,7 +69,7 @@ func (c *TestContainer) getDB(t *testing.T) *sql.DB {
 	)
 	require.NoError(t, err)
 
-	err = m.Migrate(2)
+	err = m.Migrate(1)
 	require.NoError(t, err)
 
 	return db
@@ -84,6 +84,7 @@ func TestRepository_CreateUser(t *testing.T) {
 	defer container.terminate(t)
 	db := container.getDB(t)
 	defer db.Close()
+	repo := NewRepository(db)
 
 	tests := map[string]struct {
 		req types.CreateUserRequest
@@ -110,7 +111,6 @@ func TestRepository_CreateUser(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			repo := NewRepository(db)
 			res, err := repo.CreateUser(tt.req)
 			require.Equal(t, tt.err, err)
 			require.Equal(t, tt.res, res)
@@ -118,7 +118,7 @@ func TestRepository_CreateUser(t *testing.T) {
 	}
 }
 
-func TestRepository_GetUserByUsername(t *testing.T) {
+func TestRepository_GetSessionIdByUsername(t *testing.T) {
 	container := newTestContainer(t)
 	defer container.terminate(t)
 	db := container.getDB(t)
@@ -132,21 +132,25 @@ func TestRepository_GetUserByUsername(t *testing.T) {
 	require.Equal(t, id, 1)
 
 	tests := map[string]struct {
-		req string
-		res *types.GetUserByUsernameDB
+		req types.GetSessionIdByUsernameRequest
+		res *types.GetSessionIdByUsernameResponse
 		err error
 	}{
 		"case 01: bad request": {
-			req: "",
+			req: types.GetSessionIdByUsernameRequest{
+				Username: "john",
+				Password: "bar",
+			},
 			res: nil,
 			err: sql.ErrNoRows,
 		},
 		"case 02: success": {
-			req: "foo",
-			res: &types.GetUserByUsernameDB{
-				ID:       1,
+			req: types.GetSessionIdByUsernameRequest{
+				Username: "foo",
 				Password: "bar",
-				Role:     "user",
+			},
+			res: &types.GetSessionIdByUsernameResponse{
+				UserId: 1,
 			},
 			err: nil,
 		},
@@ -154,9 +158,8 @@ func TestRepository_GetUserByUsername(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			res, err := repo.GetUserByUsername(tt.req)
+			_, err := repo.GetSessionIdByUsername(tt.req)
 			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.res, res)
 		})
 	}
 }
@@ -175,28 +178,26 @@ func TestRepository_GetAllUsers(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, id, 1)
 
+	res, err := repo.GetAllUsers()
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	require.Equal(t, id, res[0].ID)
+
 	tests := map[string]struct {
 		res []*types.UserDB
 		err error
 	}{
 		"case 01: success": {
-			res: []*types.UserDB{
-				{
-					ID:       1,
-					Username: "foo",
-					Password: "bar",
-					Role:     "user",
-				},
-			},
+			res: res,
 			err: nil,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			res, err := repo.GetAllUsers()
+			listUsers, err := repo.GetAllUsers()
 			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.res, res)
+			require.Equal(t, tt.res, listUsers)
 		})
 	}
 }
@@ -215,6 +216,10 @@ func TestRepository_GetUserByID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, id, 1)
 
+	res, err := repo.GetUserByID(1)
+	require.NoError(t, err)
+	require.Equal(t, id, res.ID)
+
 	tests := map[string]struct {
 		id  int
 		res *types.UserDB
@@ -226,13 +231,8 @@ func TestRepository_GetUserByID(t *testing.T) {
 			err: sql.ErrNoRows,
 		},
 		"case 02: success": {
-			id: 1,
-			res: &types.UserDB{
-				ID:       1,
-				Username: "foo",
-				Password: "bar",
-				Role:     "user",
-			},
+			id:  1,
+			res: res,
 			err: nil,
 		},
 	}
@@ -246,7 +246,7 @@ func TestRepository_GetUserByID(t *testing.T) {
 	}
 }
 
-func TestRepository_UpdateUser(t *testing.T) {
+func TestRepository_UpdateUserBySessionId(t *testing.T) {
 	container := newTestContainer(t)
 	defer container.terminate(t)
 	db := container.getDB(t)
@@ -256,48 +256,47 @@ func TestRepository_UpdateUser(t *testing.T) {
 	id, err := repo.CreateUser(types.CreateUserRequest{
 		Username: "foo",
 		Password: "bar",
-		Email:    "foo@bar.com",
-		Phone:    "000-00-00",
 	})
 	require.NoError(t, err)
 	require.Equal(t, id, 1)
 
-	id, err = repo.CreateUser(types.CreateUserRequest{
-		Username: "john",
-		Password: "doe",
-		Email:    "john@doe.com",
-		Phone:    "111-11-11",
+	res, err := repo.GetSessionIdByUsername(types.GetSessionIdByUsernameRequest{
+		Username: "foo",
+		Password: "bar",
 	})
 	require.NoError(t, err)
-	require.Equal(t, id, 2)
+	require.Equal(t, res.UserId, 1)
 
 	tests := map[string]struct {
-		id  int
-		req types.UpdateUserRequest
-		err error
+		req       types.UpdateUserRequest
+		sessionId string
+		res       int
+		err       error
 	}{
 		"case 01: fail": {
-			id: 1,
 			req: types.UpdateUserRequest{
 				Username: "john",
 				Password: "doe",
 			},
-			err: errors.New("bad request"),
+			sessionId: "",
+			err:       errors.New("bad request"),
 		},
 		"case 02: success": {
-			id: 1,
 			req: types.UpdateUserRequest{
 				Username: "foo",
 				Password: "bar",
 			},
-			err: nil,
+			res:       1,
+			sessionId: res.SessionId,
+			err:       nil,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			err = repo.UpdateUser(tt.id, tt.req)
+			userId, err := repo.UpdateUserBySessionId(tt.req, tt.sessionId)
 			require.Equal(t, tt.err, err)
+			require.Equal(t, tt.res, userId)
 		})
 	}
 }
@@ -339,7 +338,7 @@ func TestRepository_UpdateUserById(t *testing.T) {
 				Password: "doe",
 				Email:    "john@doe.com",
 				Phone:    "111-11-11",
-				Role:     "admin",
+				RoleId:   2,
 			},
 			err: errors.New("bad request"),
 		},
@@ -350,7 +349,7 @@ func TestRepository_UpdateUserById(t *testing.T) {
 				Password: "doe",
 				Email:    "john@doe.com",
 				Phone:    "111-11-11",
-				Role:     "admin",
+				RoleId:   2,
 			},
 			err: nil,
 		},

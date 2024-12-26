@@ -38,7 +38,7 @@ func Run() {
 	fmt.Println("START")
 
 	repo := repository.NewRepository(db)
-	serv := service.NewService(repo, rc, mc, cfg.Secret.Key)
+	serv := service.NewService(repo, rc, mc)
 	hand := handler.NewHandler(serv)
-	routes.Run(hand, cfg.Server.Port, cfg.Secret.Key)
+	routes.Run(hand, cfg.Server.Port, repo)
 }

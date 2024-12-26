@@ -3,17 +3,13 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/sabirov8872/bookstore/internal/repository"
 	"github.com/sabirov8872/bookstore/internal/types"
 	"github.com/sabirov8872/bookstore/pkg/minio"
 	"github.com/sabirov8872/bookstore/pkg/redis"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -26,19 +22,19 @@ const (
 )
 
 type Service struct {
-	repo      repository.IRepository
-	redis     redis.IClient
-	minio     minio.IClient
-	secretKey string
+	repo  repository.IRepository
+	redis redis.IClient
+	minio minio.IClient
 }
 
 type IService interface {
 	CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error)
-	GetUserByUsername(req types.GetUserByUserRequest) (*types.GetUserByUserResponse, error)
+	GetSessionIdByUsername(req types.GetSessionIdByUsernameRequest) (*types.GetSessionIdByUsernameResponse, error)
+	DeleteSessionId(sessionId string) error
 
 	GetAllUsers() (*types.ListUserResponse, error)
 	GetUserById(id int) (*types.User, error)
-	UpdateUser(req types.UpdateUserRequest, authHeader string) error
+	UpdateUserBySessionId(req types.UpdateUserRequest, sessionId string) error
 	UpdateUserById(id int, userRole types.UpdateUserByIdRequest) error
 	DeleteUser(id int) error
 
@@ -63,22 +59,15 @@ type IService interface {
 	GetFileByBookId(id int) (res *types.GetFileByBookIdResponse, err error)
 }
 
-func NewService(repo repository.IRepository, redis redis.IClient, minio minio.IClient, secretKey string) *Service {
+func NewService(repo repository.IRepository, redis redis.IClient, minio minio.IClient) *Service {
 	return &Service{
-		repo:      repo,
-		redis:     redis,
-		minio:     minio,
-		secretKey: secretKey,
+		repo:  repo,
+		redis: redis,
+		minio: minio,
 	}
 }
 
 func (s *Service) CreateUser(req types.CreateUserRequest) (*types.CreateUserResponse, error) {
-	var err error
-	req.Password, err = hashingPassword(req.Password)
-	if err != nil {
-		return nil, err
-	}
-
 	id, err := s.repo.CreateUser(req)
 	if err != nil {
 		return nil, err
@@ -94,26 +83,12 @@ func (s *Service) CreateUser(req types.CreateUserRequest) (*types.CreateUserResp
 	}, nil
 }
 
-func (s *Service) GetUserByUsername(req types.GetUserByUserRequest) (*types.GetUserByUserResponse, error) {
-	res, err := s.repo.GetUserByUsername(req.Username)
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) GetSessionIdByUsername(req types.GetSessionIdByUsernameRequest) (*types.GetSessionIdByUsernameResponse, error) {
+	return s.repo.GetSessionIdByUsername(req)
+}
 
-	err = bcrypt.CompareHashAndPassword([]byte(res.Password), []byte(req.Password))
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := createToken(res.ID, res.Role, s.secretKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.GetUserByUserResponse{
-		UserID: res.ID,
-		Token:  token,
-	}, nil
+func (s *Service) DeleteSessionId(sessionId string) error {
+	return s.repo.DeleteSessionId(sessionId)
 }
 
 func (s *Service) GetAllUsers() (*types.ListUserResponse, error) {
@@ -199,13 +174,8 @@ func (s *Service) GetUserById(id int) (*types.User, error) {
 	return data, nil
 }
 
-func (s *Service) UpdateUser(req types.UpdateUserRequest, authHeader string) error {
-	id, err := getUserIdFromToken(authHeader, s.secretKey)
-	if err != nil {
-		return err
-	}
-
-	err = s.repo.UpdateUser(id, req)
+func (s *Service) UpdateUserBySessionId(req types.UpdateUserRequest, sessionId string) error {
+	id, err := s.repo.UpdateUserBySessionId(req, sessionId)
 	if err != nil {
 		return err
 	}
@@ -458,7 +428,7 @@ func (s *Service) CreateAuthor(req types.CreateAuthorRequest) (*types.CreateAuth
 	}
 
 	return &types.CreateAuthorResponse{
-		ID: id,
+		AuthorId: id,
 	}, nil
 }
 
@@ -612,46 +582,4 @@ func (s *Service) DeleteGenre(id int) error {
 	}
 
 	return nil
-}
-
-func createToken(id int, userRole, secretKey string) (string, error) {
-	claims := &jwt.MapClaims{
-		"id":   id,
-		"role": userRole,
-		"exp":  time.Now().Add(time.Hour).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString([]byte(secretKey))
-}
-
-func hashingPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(hashedPassword), nil
-}
-
-func getUserIdFromToken(authHeader, secretKey string) (int, error) {
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		authHeader = authHeader[len("Bearer "):]
-	}
-
-	token, _ := jwt.Parse(authHeader, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, errors.New("invalid claims")
-	}
-
-	userId, ok := claims["id"].(float64)
-	if !ok {
-		return 0, errors.New("invalid user id")
-	}
-
-	return int(userId), nil
 }

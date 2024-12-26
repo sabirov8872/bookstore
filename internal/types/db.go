@@ -11,12 +11,6 @@ type UserDB struct {
 	Role     string `postgres:"role"`
 }
 
-type GetUserByUsernameDB struct {
-	ID       int    `postgres:"id"`
-	Password string `postgres:"password"`
-	Role     string `postgres:"role"`
-}
-
 type BookDB struct {
 	ID          int       `postgres:"id"`
 	Title       string    `postgres:"title"`
